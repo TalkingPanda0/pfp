@@ -1,0 +1,25 @@
+[package]
+name = "pfp"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { version = "1.50.0", features = ["macros","rt-multi-thread","io-util","fs"] }
+axum = { version = "0.8.8", default-features = false , features = ["http1","tokio","macros"]}
+reqwest = { version = "0.13.2", default-features = false, features = ["default-tls"]}
+discord = { git = "https://github.com/SpaceManiac/discord-rs", default-features = false }
+image = { version = "0.25.9", default-features = false }
+tikv-jemallocator = "0.6.1"
+inventory = "0.3.22"
+async-trait = "0.1.89"
+imageproc = {version = "0.26.1", default-features = false, features = ["text"]}
+ab_glyph = "0.2.32"
+webpx = { path = "../webpx", features = ["animation"] }
+hex_color = "3.0.0"
+itertools = "0.14.0"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+
