@@ -11,6 +11,5 @@ pub mod text;
 pub mod delay;
 pub mod aliases;
 pub mod reverse;
-pub mod fade;
 pub mod animate;
 pub mod mirror;

@@ -134,3 +134,9 @@ impl Action for Animate {
         self
     }
 }
+
+impl Animate {
+    pub fn new(property: Property, start: i8, end: i8, speed: i8) -> Self {
+        Self(property, start,end, speed)
+    }
+}
