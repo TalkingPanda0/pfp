@@ -149,9 +149,13 @@ impl Action for TextAction {
     }
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>,action: u32) -> ActionResult<'a> {
         Box::pin(async move {
-            for frame in images.get_from_action(-1,action).iter_mut() {
+            let mut edited_images = images.get_from_action(-1,action);
+            for frame in edited_images.iter_mut() {
                 self.draw(&mut frame.image)?;
             }
+
+            images.truncate(images.len() - edited_images.len());
+            images.extend(edited_images);
             Ok(())
         })
     }
