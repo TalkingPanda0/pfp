@@ -6,7 +6,9 @@ use image::{DynamicImage, GenericImageView, Rgba};
 use imageproc::drawing::{draw_text_mut, text_size};
 
 use crate::{
-    AppState, action::{Action, ActionResult}, frames::{Frame, Frames}
+    AppState,
+    action::{Action, ActionResult},
+    frames::{Frame, Frames},
 };
 
 #[derive(Clone)]
@@ -98,14 +100,14 @@ impl TextAction {
         };
 
         let x = self.4.unwrap_or(((width - text_width) / 2) as i32);
-        let y = self.5.unwrap_or_else( ||
+        let y = self.5.unwrap_or_else(|| {
             match self.1 {
                 Alignment::Top => 0.0,
                 Alignment::Middle => (height as f32 * 0.5) - (text_height as f32 * 0.5),
                 Alignment::Bottom => height as f32 - text_height as f32,
             }
-            .round() as i32,
-        );
+            .round() as i32
+        });
 
         draw_text_mut(image, self.2, x, y, text_scale, &font, &self.0);
         Ok(())
@@ -136,7 +138,6 @@ impl Action for TextAction {
             arguments.next().and_then(|s| s.parse::<i32>().ok()),
         );
 
-
         actions.push(Box::new(TextAction(
             text.to_string(),
             alignment,
@@ -147,15 +148,11 @@ impl Action for TextAction {
         )));
         true
     }
-    fn apply<'a>(&'a self, images: &'a mut Vec<Frame>,action: u32) -> ActionResult<'a> {
+    fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, _action: u32) -> ActionResult<'a> {
         Box::pin(async move {
-            let mut edited_images = images.get_from_action(-1,action);
-            for frame in edited_images.iter_mut() {
+            for frame in images.get_mut_action(-1) {
                 self.draw(&mut frame.image)?;
             }
-
-            images.truncate(images.len() - edited_images.len());
-            images.extend(edited_images);
             Ok(())
         })
     }

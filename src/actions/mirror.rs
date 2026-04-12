@@ -23,14 +23,9 @@ impl Action for Mirror {
             false
         }
     }
-    fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {
+    fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, _action: u32) -> ActionResult<'a> {
         Box::pin(async move {
-            let mut images_to_mirror = images.get_from_action(-1, action);
-            images.truncate(images.len() - images_to_mirror.len());
-            images_to_mirror
-                .iter_mut()
-                .for_each(|image| image.image.apply_orientation(self.0));
-            images.extend(images_to_mirror);
+            images.get_mut_action(-1).iter_mut().for_each(|f| f.image.apply_orientation(self.0));
 
             Ok(())
         })

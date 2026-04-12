@@ -81,7 +81,10 @@ pub fn get_error_image(error: String) -> Result<Vec<u8>, String> {
 }
 
 pub trait Frames: Sized {
-    fn get_from_action(&mut self, action: i32,current_action: u32) -> Vec<Frame>;
+    fn clone_action(&self, action: i32, current_action: u32) -> Vec<Frame>;
+    fn get_mut_action(&mut self, action: i32) -> Vec<&mut Frame>;
+    fn extract_action(&mut self, action: i32) -> Vec<Frame>;
+    fn get_action_from_relative(&self, action: i32) -> u32;
     fn get_at_timestamp(&mut self, timestamp: u32) -> Option<&mut Frame>;
     fn duration(&self) -> u32;
     fn min_delay(&self) -> u32;
@@ -93,24 +96,53 @@ pub trait Frames: Sized {
     fn row(&mut self, action: u32) -> Result<(), String>;
 
     fn resize_all(&mut self, width: u32, height: u32) -> Result<(), String>;
-    fn resize_all_to_max(&mut self) -> Result<(), String>;
+    fn resize_all_to_max(&mut self) -> Result<(u32,u32), String>;
     fn encode(&mut self) -> Result<Vec<u8>, String>;
     fn from_webp_animation(data: &[u8], action: u32) -> Result<Self, String>;
 }
 
 impl Frames for Vec<Frame> {
-    fn get_from_action(
-        &mut self,
-        action: i32,
-        current_action: u32,
-    ) -> Vec<Frame> {
-        let uaction = if action < 0 {
-            self.iter().map(|f| f.action).rev().dedup().nth(action.unsigned_abs() as usize -1).unwrap_or(0)
-        } else {
-            self.iter().map(|f| f.action).dedup().nth(action as usize).unwrap_or(0)
-        };
+    fn clone_action(&self, action: i32, current_action: u32) -> Vec<Frame> {
+        let action = self.get_action_from_relative(action);
 
-        self.iter().filter(|frame| frame.action == uaction).map(|f| Frame {action: current_action, ..f.clone()}).collect()
+        self.iter()
+            .filter(|frame| frame.action == action)
+            .map(|f| Frame {
+                action: current_action,
+                ..f.clone()
+            })
+            .collect()
+    }
+
+    fn get_mut_action(&mut self, action: i32) -> Vec<&mut Frame> {
+        let action = self.get_action_from_relative(action);
+
+        self.iter_mut()
+            .filter(|frame| frame.action == action)
+            .collect()
+    }
+
+    fn extract_action(&mut self, action: i32) -> Vec<Frame> {
+        let action = self.get_action_from_relative(action);
+
+        self.extract_if(..,|f| f.action == action).collect()
+    }
+
+    fn get_action_from_relative(&self, action: i32) -> u32 {
+        if action < 0 {
+            self.iter()
+                .map(|f| f.action)
+                .rev()
+                .dedup()
+                .nth(action.unsigned_abs() as usize - 1)
+                .unwrap_or(0)
+        } else {
+            self.iter()
+                .map(|f| f.action)
+                .dedup()
+                .nth(action as usize)
+                .unwrap_or(0)
+        }
     }
 
     fn get_at_timestamp(&mut self, timestamp: u32) -> Option<&mut Frame> {
@@ -130,7 +162,6 @@ impl Frames for Vec<Frame> {
 
     fn min_delay(&self) -> u32 {
         self.iter().map(|f| f.delay).min().unwrap_or(0) as u32
-
     }
 
     fn dimensions(&self) -> (u32, u32) {
@@ -201,20 +232,18 @@ impl Frames for Vec<Frame> {
         Ok(())
     }
 
-    fn resize_all_to_max(&mut self) -> Result<(), String> {
+    fn resize_all_to_max(&mut self) -> Result<(u32,u32), String> {
         let (width, height) = self.dimensions();
 
         self.resize_all(width, height)?;
-        Ok(())
+        Ok((width,height))
     }
 
     fn encode(&mut self) -> Result<Vec<u8>, String> {
         if self.is_empty() {
             return Err("No images to encode.".to_string());
         }
-        let (width, height) = self.dimensions();
-
-        self.resize_all(width, height)?;
+        let (width, height) = self.resize_all_to_max()?;
 
         let mut encoder = AnimationEncoder::new(width, height).map_err(|err| err.to_string())?;
         encoder.set_method(0);
@@ -231,7 +260,6 @@ impl Frames for Vec<Frame> {
 
         encoder.finish(timestamp).map_err(|err| err.to_string())
     }
-
 
     fn from_webp_animation(data: &[u8], action: u32) -> Result<Self, String> {
         let mut decoder = AnimationDecoder::new(data).map_err(|err| err.to_string())?;

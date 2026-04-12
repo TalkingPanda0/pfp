@@ -57,8 +57,9 @@ impl Action for Combine {
 
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {
         Box::pin(async move { 
-            let mut overlay = images.get_from_action(-1, action);
-            let mut base = images.get_from_action(-2, action);
+
+            let mut overlay = images.extract_action(-1);
+            let mut base = images.extract_action(-1);
 
             if overlay.is_empty() || base.is_empty() {
                 return Err("No images to combine.".to_string());
@@ -70,18 +71,13 @@ impl Action for Combine {
             let min_delay = base.min_delay().min(overlay.min_delay());
             let duration = base_duration.max(overlay_duration);
 
-            let mut combined: Vec<Frame> = Vec::new();
-
             for ts in (0..=duration).step_by(min_delay as usize) {
                 let mut base_frame = base.get_at_timestamp(ts % base_duration).ok_or("Failed to get frame for combine.".to_string())?.clone();
                 let overlay_frame = overlay.get_at_timestamp(ts % overlay_duration).ok_or("Failed to get frame for combine.".to_string())?;
                 combine(&mut base_frame, overlay_frame, self.0)?;
 
-                combined.push(Frame{ delay: min_delay as i32,..base_frame } );
+                images.push(Frame{ delay: min_delay as i32,action,..base_frame } );
             }
-
-            images.truncate(images.len() - (base.len() + overlay.len()));
-            images.extend(combined);
 
             Ok(()) 
         })

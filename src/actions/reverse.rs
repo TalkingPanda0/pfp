@@ -28,10 +28,12 @@ impl Action for Reverse {
 
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>,action: u32) -> ActionResult<'a> {
         Box::pin(async move {
-            let frames: Vec<Frame> = images.get_from_action(-1, action).into_iter().rev().collect();
-            if !self.0 {
-                images.truncate(images.len() - frames.len());
-            }
+            let frames: Vec<Frame> = if self.0 {
+                images.clone_action(-1,action).into_iter().rev().collect()
+            }  else {
+                images.extract_action(-1).into_iter().rev().collect()
+            };
+
             images.extend(frames);
 
             Ok(()) 

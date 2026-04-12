@@ -41,7 +41,7 @@ impl Action for Copy {
         action: u32,
     ) -> crate::action::ActionResult<'a> {
         Box::pin(async move {
-            let copied = images.get_from_action(self.0, action);
+            let copied = images.clone_action(self.0, action);
             images.extend(copied);
             Ok(())
         })
