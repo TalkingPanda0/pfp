@@ -149,7 +149,7 @@ impl Frames for Vec<Frame> {
         let mut ts = 0;
         for frame in self {
             ts += frame.delay as u32;
-            if ts >= timestamp {
+            if ts > timestamp {
                 return Some(frame);
             }
         }
