@@ -1,6 +1,7 @@
-use std::{any::Any, sync::Arc};
+use std::{any::Any, f32::consts::PI, sync::Arc};
 
-use image::{DynamicImage, GenericImage, GenericImageView};
+use image::{DynamicImage, GenericImage, GenericImageView, Rgba};
+use imageproc::geometric_transformations::{Interpolation, rotate_about_center};
 
 use crate::{
     AppState,
@@ -13,6 +14,7 @@ pub enum Property {
     Opacity,
     X,
     Y,
+    Rotation,
 }
 
 impl Property {
@@ -21,11 +23,12 @@ impl Property {
             "opacity" => Some(Self::Opacity),
             "x" => Some(Self::X),
             "y" => Some(Self::Y),
+            "rotation" | "rotate" => Some(Self::Rotation),
             _ => None,
         }
     }
 
-    fn apply(&self, image: &DynamicImage, value: i8) -> Result<DynamicImage, String> {
+    fn apply(&self, image: &DynamicImage, value: i32) -> Result<DynamicImage, String> {
         match self {
             Self::Opacity => Self::apply_opacity(image, value.unsigned_abs()),
             Self::X => Self::apply_pos(
@@ -38,6 +41,9 @@ impl Property {
                 0,
                 (image.height() as f32 * (value as f32 / 100.0)) as i32,
             ),
+            Self::Rotation => {
+                Ok(rotate_about_center(&image.to_rgba8(), value as f32 * (PI / 180.0), Interpolation::Bilinear, Rgba([0,0,0,0])).into()) 
+            }
         }
     }
 
@@ -63,7 +69,7 @@ impl Property {
         Ok(out)
     }
 
-    fn apply_opacity(image: &DynamicImage, opacity: u8) -> Result<DynamicImage, String> {
+    fn apply_opacity(image: &DynamicImage, opacity: u32) -> Result<DynamicImage, String> {
         let mut out = image.clone();
 
         out.as_mut_rgba8()
@@ -77,7 +83,7 @@ impl Property {
 }
 
 #[derive(Clone)]
-pub struct Animate(Property, i8, i8, i8);
+pub struct Animate(Property, i32, i32, i8);
 
 impl Action for Animate {
     fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _discord: &Arc<AppState>) -> bool {
@@ -136,7 +142,7 @@ impl Action for Animate {
 }
 
 impl Animate {
-    pub fn new(property: Property, start: i8, end: i8, speed: i8) -> Self {
+    pub fn new(property: Property, start: i32, end: i32, speed: i8) -> Self {
         Self(property, start,end, speed)
     }
 }
