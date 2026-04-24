@@ -68,7 +68,8 @@ impl Action for Combine {
             let base_duration = base.duration();
             let overlay_duration = overlay.duration();
 
-            let min_delay = base.min_delay().min(overlay.min_delay());
+            let min_delay = base.min_delay().min(overlay.min_delay()).max(16);
+            println!("min delay {min_delay}");
             let duration = base_duration.max(overlay_duration);
 
             for ts in (0..=duration).step_by(min_delay as usize) {

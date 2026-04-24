@@ -124,12 +124,12 @@ impl Action for Animate {
             if reverse {
                 for value in (self.2..=self.1).rev().step_by(self.3 as usize) {
                     let image = self.0.apply(&last.image, value)?;
-                    images.push(Frame::new(image, 10, action));
+                    images.push(Frame::new(image, 16, action));
                 }
             } else {
                 for value in (self.1..=self.2).step_by(self.3 as usize) {
                     let image = self.0.apply(&last.image, value)?;
-                    images.push(Frame::new(image, 10, action));
+                    images.push(Frame::new(image, 16, action));
                 }
             }
             Ok(())

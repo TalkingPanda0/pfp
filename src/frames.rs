@@ -6,7 +6,7 @@ use webpx::{AnimationDecoder, AnimationEncoder, Encoder, Unstoppable, decode_rgb
 
 const MAX_SIZE: u32 = 16383;
 
-#[derive(Clone)]
+#[derive(Clone,PartialEq)]
 pub struct Frame {
     pub image: DynamicImage,
     pub delay: i32,
