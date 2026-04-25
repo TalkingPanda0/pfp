@@ -23,7 +23,7 @@ impl Action for Tenor {
     fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
         if let Some(id) = input
             .strip_prefix("tenor(")
-            .and_then(|s| s.strip_suffix(")"))
+            .and_then(|s| s.strip_suffix(")")).map(|s| s.trim_prefix("https://").trim_prefix("tenor.com/view"))
         {
             actions.push(Box::new(Self(id.to_string())));
             true
