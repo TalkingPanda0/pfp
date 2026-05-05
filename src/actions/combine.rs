@@ -1,5 +1,6 @@
 use std::{any::Any, sync::Arc};
 
+use anyhow::{Result, anyhow, bail};
 use imageproc::compose::{overlay_mut};
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
     frames::{Frame, Frames},
 };
 
-fn combine(base: &mut Frame, overlay: &mut Frame, resize: bool) -> Result<(), String> {
+fn combine(base: &mut Frame, overlay: &mut Frame, resize: bool) -> Result<()> {
     let (width, height) = (
         base.image.width().max(overlay.image.width()),
         base.image.height().max(overlay.image.height()),
@@ -21,11 +22,11 @@ fn combine(base: &mut Frame, overlay: &mut Frame, resize: bool) -> Result<(), St
     let base_buffer = base
         .image
         .as_mut_rgba8()
-        .ok_or("Failed to convert image.".to_string())?;
+        .ok_or(anyhow!("Failed to convert image."))?;
     let overlay_buffer = overlay
         .image
         .as_rgba8()
-        .ok_or("Failed to convert image.".to_string())?;
+        .ok_or(anyhow!("Failed to convert image."))?;
 
     overlay_mut(
         base_buffer,
@@ -62,7 +63,7 @@ impl Action for Combine {
             let mut base = images.extract_action(-1);
 
             if overlay.is_empty() || base.is_empty() {
-                return Err("No images to combine.".to_string());
+               bail!("No images to combine.");
             }
 
             let base_duration = base.duration();
@@ -72,8 +73,8 @@ impl Action for Combine {
             let duration = base_duration.max(overlay_duration);
 
             for ts in (0..=duration).step_by(min_delay as usize) {
-                let mut base_frame = base.get_at_timestamp(ts % base_duration).ok_or("Failed to get frame for combine.".to_string())?.clone();
-                let overlay_frame = overlay.get_at_timestamp(ts % overlay_duration).ok_or("Failed to get frame for combine.".to_string())?;
+                let mut base_frame = base.get_at_timestamp(ts % base_duration).ok_or(anyhow!("Failed to get frame for combine."))?.clone();
+                let overlay_frame = overlay.get_at_timestamp(ts % overlay_duration).ok_or(anyhow!("Failed to get frame for combine."))?;
                 combine(&mut base_frame, overlay_frame, self.0)?;
 
                 images.push(Frame{ delay: min_delay as i32,action,..base_frame } );

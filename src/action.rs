@@ -1,3 +1,5 @@
+use anyhow::Result;
+
 use crate::{
     AppState,
     actions::{
@@ -7,7 +9,7 @@ use crate::{
 };
 use std::{any::Any, pin::Pin, sync::Arc};
 
-pub type ActionResult<'a> = Pin<Box<dyn Future<Output = Result<(), String>> + Send + 'a>>;
+pub type ActionResult<'a> = Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>;
 pub type Parser = fn(&str, &mut Vec<Box<dyn Action>>, &Arc<AppState>) -> bool;
 
 static PARSERS: [Parser; 19] = [
@@ -60,11 +62,11 @@ impl Clone for Box<dyn Action> {
 }
 
 pub trait ActionList {
-    async fn apply_actions(&mut self, images: &mut Vec<Frame>) -> Result<(), String>;
+    async fn apply_actions(&mut self, images: &mut Vec<Frame>) -> Result<()>;
 }
 
 impl ActionList for Vec<Box<dyn Action>> {
-    async fn apply_actions(&mut self, images: &mut Vec<Frame>) -> Result<(), String> {
+    async fn apply_actions(&mut self, images: &mut Vec<Frame>) -> Result<()> {
         for (i, action) in self.iter().enumerate() {
             action.apply(images, i as u32).await?;
         }

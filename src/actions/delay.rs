@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 
+use anyhow::anyhow;
+
 use crate::{
     AppState, action::{Action, ActionResult}, frames::Frame
 };
@@ -23,7 +25,7 @@ impl Action for Delay {
     }
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>,_action: u32) -> ActionResult<'a> {
         Box::pin(async move {
-            images.last_mut().ok_or("No image to delay.".to_string())?.delay = self.0;
+            images.last_mut().ok_or(anyhow!("No image to delay."))?.delay = self.0;
             Ok(())
         })
     }

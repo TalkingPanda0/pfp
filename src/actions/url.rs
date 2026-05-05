@@ -24,10 +24,9 @@ impl Action for URLAction {
             let bytes = reqwest::get(&self.0)
                 .await
                 .and_then(|r| r.error_for_status())
-                .map(|r| r.bytes())
-                .map_err(|err| format!("Error getting image from {}: {err}", self.0))?
-                .await
-                .map_err(|err| format!("Error getting image from {}: {err}", self.0))?;
+                .map(|r| r.bytes())?
+                .await?;
+
             let frames = Vec::from_webp_animation(&bytes, action)?;
 
             images.extend(frames);

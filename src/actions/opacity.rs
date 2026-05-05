@@ -1,5 +1,7 @@
 use std::{any::Any, sync::Arc};
 
+use anyhow::anyhow;
+
 use crate::{
     AppState,
     action::{Action, ActionResult},
@@ -31,7 +33,7 @@ impl Action for Opacity {
                 frame.action = action;
                 frame.image
                     .as_mut_rgba8()
-                    .ok_or("Failed to get image as rgba8".to_string())?
+                    .ok_or(anyhow!("Failed to get image as rgba8"))?
                     .iter_mut()
                     .skip(3)
                     .step_by(4)

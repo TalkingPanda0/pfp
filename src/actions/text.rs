@@ -1,6 +1,7 @@
 use std::{any::Any, sync::Arc};
 
 use ab_glyph::{FontRef, PxScale};
+use anyhow::Result;
 use hex_color::HexColor;
 use image::{DynamicImage, GenericImageView, Rgba};
 use imageproc::drawing::{draw_text_mut, text_size};
@@ -85,11 +86,10 @@ pub struct TextAction(
 );
 
 impl TextAction {
-    fn draw(&self, image: &mut DynamicImage) -> Result<(), String> {
+    fn draw(&self, image: &mut DynamicImage) -> Result<()> {
         let (width, height) = image.dimensions();
         let font =
-            FontRef::try_from_slice(include_bytes!("/usr/share/fonts/TTF/Roboto-Regular.ttf"))
-                .map_err(|err| err.to_string())?;
+            FontRef::try_from_slice(include_bytes!("/usr/share/fonts/TTF/Roboto-Regular.ttf"))?;
         let (text_width, text_height, text_scale) = if let Some(scale) = self.3 {
             let scale = PxScale::from(scale);
             let (width, height) = text_size(scale, &font, &self.0);

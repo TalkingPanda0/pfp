@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use anyhow::bail;
+
 use crate::{AppState, action::{Action, ActionResult}, frames::Frame};
 
 #[derive(Clone)]
@@ -13,7 +15,7 @@ impl Action for Squish {
     ) -> ActionResult<'a> {
         Box::pin(async move {
             if images.is_empty() {
-                return Err("No image to squish.".to_string());
+                bail!("No image to squish.");
             }
             for frame in images.iter_mut().rev() {
 

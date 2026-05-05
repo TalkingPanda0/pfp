@@ -1,4 +1,5 @@
 use ab_glyph::{FontRef, PxScale};
+use anyhow::{Result, anyhow, bail};
 use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Rgba, RgbaImage};
 use imageproc::drawing::{draw_text_mut, text_size};
 use itertools::Itertools;
@@ -22,16 +23,16 @@ impl Frame {
         }
     }
 
-    pub fn from_webp(bytes: &[u8], delay: i32, action: u32) -> Result<Frame, String> {
-        let decoded = decode_rgba(bytes).map_err(|err| err.to_string())?;
+    pub fn from_webp(bytes: &[u8], delay: i32, action: u32) -> Result<Frame> {
+        let decoded = decode_rgba(bytes)?;
         let image = RgbaImage::from_raw(decoded.1, decoded.2, decoded.0)
-            .ok_or("Failed".to_string())?
+            .ok_or(anyhow!("Failed to decode webp image."))?
             .into();
 
         Ok(Self::new(image, delay, action))
     }
 
-    pub fn resize(&mut self, width: u32, height: u32) -> Result<(), String> {
+    pub fn resize(&mut self, width: u32, height: u32) -> Result<()> {
         let resized = self
             .image
             .resize(width, height, image::imageops::FilterType::Triangle);
@@ -40,18 +41,15 @@ impl Frame {
 
         let (w, h) = resized.dimensions();
 
-        canvas
-            .copy_from(&resized, (width - w) / 2, (height - h) / 2)
-            .map_err(|err| format!("Error resizing all: {:?}", err))?;
+        canvas.copy_from(&resized, (width - w) / 2, (height - h) / 2)?;
 
         self.image = canvas;
         Ok(())
     }
 }
 
-pub fn get_error_image(error: String) -> Result<Vec<u8>, String> {
-    let font = FontRef::try_from_slice(include_bytes!("/usr/share/fonts/TTF/Roboto-Regular.ttf"))
-        .map_err(|err| err.to_string())?;
+pub fn get_error_image(error: String) -> Result<Vec<u8>> {
+    let font = FontRef::try_from_slice(include_bytes!("/usr/share/fonts/TTF/Roboto-Regular.ttf"))?;
     let size = PxScale::from(24.0);
     let (width, height) = text_size(size, &font, &error);
     let mut canvas = DynamicImage::ImageRgba8(ImageBuffer::from_pixel(
@@ -75,8 +73,7 @@ pub fn get_error_image(error: String) -> Result<Vec<u8>, String> {
     )
     .method(0)
     .quality(75.0)
-    .encode(Unstoppable)
-    .map_err(|err| err.to_string())?;
+    .encode(Unstoppable)?;
     Ok(encoded)
 }
 
@@ -91,14 +88,14 @@ pub trait Frames: Sized {
 
     fn dimensions(&self) -> (u32, u32);
     fn dimensions_column(&self) -> (u32, u32);
-    fn column(&mut self, action: u32) -> Result<(), String>;
+    fn column(&mut self, action: u32) -> Result<()>;
     fn dimensions_row(&self) -> (u32, u32);
-    fn row(&mut self, action: u32) -> Result<(), String>;
+    fn row(&mut self, action: u32) -> Result<()>;
 
-    fn resize_all(&mut self, width: u32, height: u32) -> Result<(), String>;
-    fn resize_all_to_max(&mut self) -> Result<(u32,u32), String>;
-    fn encode(&mut self) -> Result<Vec<u8>, String>;
-    fn from_webp_animation(data: &[u8], action: u32) -> Result<Self, String>;
+    fn resize_all(&mut self, width: u32, height: u32) -> Result<()>;
+    fn resize_all_to_max(&mut self) -> Result<(u32, u32)>;
+    fn encode(&mut self) -> Result<Vec<u8>>;
+    fn from_webp_animation(data: &[u8], action: u32) -> Result<Self>;
 }
 
 impl Frames for Vec<Frame> {
@@ -125,7 +122,7 @@ impl Frames for Vec<Frame> {
     fn extract_action(&mut self, action: i32) -> Vec<Frame> {
         let action = self.get_action_from_relative(action);
 
-        self.extract_if(..,|f| f.action == action).collect()
+        self.extract_if(.., |f| f.action == action).collect()
     }
 
     fn get_action_from_relative(&self, action: i32) -> u32 {
@@ -181,7 +178,7 @@ impl Frames for Vec<Frame> {
             .fold((0, 0), |acc, e| (acc.0 + e.0, acc.1.max(e.1)))
     }
 
-    fn column(&mut self, action: u32) -> Result<(), String> {
+    fn column(&mut self, action: u32) -> Result<()> {
         let (width, height) = self.dimensions_column();
         let mut canvas =
             DynamicImage::ImageRgba8(ImageBuffer::from_pixel(width, height, Rgba([0, 0, 0, 0])));
@@ -189,9 +186,7 @@ impl Frames for Vec<Frame> {
 
         for frame in self.iter() {
             let (w, h) = frame.image.dimensions();
-            canvas
-                .copy_from(&frame.image, (width - w) / 2, y)
-                .map_err(|err| format!("Failed column: {:?}", err))?;
+            canvas.copy_from(&frame.image, (width - w) / 2, y)?;
             y += h;
         }
 
@@ -200,7 +195,7 @@ impl Frames for Vec<Frame> {
         Ok(())
     }
 
-    fn row(&mut self, action: u32) -> Result<(), String> {
+    fn row(&mut self, action: u32) -> Result<()> {
         let (width, height) = self.dimensions_row();
         let mut canvas =
             DynamicImage::ImageRgba8(ImageBuffer::from_pixel(width, height, Rgba([0, 0, 0, 0])));
@@ -208,9 +203,7 @@ impl Frames for Vec<Frame> {
 
         for frame in self.iter() {
             let (w, h) = frame.image.dimensions();
-            canvas
-                .copy_from(&frame.image, x, (height - h) / 2)
-                .map_err(|err| format!("Failed row: {:?}", err))?;
+            canvas.copy_from(&frame.image, x, (height - h) / 2)?;
             x += w;
         }
 
@@ -219,11 +212,11 @@ impl Frames for Vec<Frame> {
         Ok(())
     }
 
-    fn resize_all(&mut self, width: u32, height: u32) -> Result<(), String> {
+    fn resize_all(&mut self, width: u32, height: u32) -> Result<()> {
         if width > MAX_SIZE {
-            return Err(format!("TOO FAT! {width}/{MAX_SIZE}"));
+            bail!("TOO FAT! {width}/{MAX_SIZE}");
         } else if height > MAX_SIZE {
-            return Err(format!("HEIGHT FAT! {height}/{MAX_SIZE}"));
+            bail!("HEIGHT FAT! {height}/{MAX_SIZE}");
         }
 
         for frame in self.iter_mut() {
@@ -232,40 +225,38 @@ impl Frames for Vec<Frame> {
         Ok(())
     }
 
-    fn resize_all_to_max(&mut self) -> Result<(u32,u32), String> {
+    fn resize_all_to_max(&mut self) -> Result<(u32, u32)> {
         let (width, height) = self.dimensions();
 
         self.resize_all(width, height)?;
-        Ok((width,height))
+        Ok((width, height))
     }
 
-    fn encode(&mut self) -> Result<Vec<u8>, String> {
+    fn encode(&mut self) -> Result<Vec<u8>> {
         if self.is_empty() {
-            return Err("No images to encode.".to_string());
+            bail!("No images to encode.".to_string());
         }
         let (width, height) = self.resize_all_to_max()?;
 
-        let mut encoder = AnimationEncoder::new(width, height).map_err(|err| err.to_string())?;
+        let mut encoder = AnimationEncoder::new(width, height)?;
         encoder.set_method(0);
         encoder.set_quality(75.0);
         encoder.set_low_memory(true);
 
         let mut timestamp: i32 = 0;
         for frame in self {
-            encoder
-                .add_frame_rgba(&frame.image.to_rgba8().into_raw(), timestamp)
-                .map_err(|err| err.to_string())?;
+            encoder.add_frame_rgba(&frame.image.to_rgba8().into_raw(), timestamp)?;
             timestamp += frame.delay;
         }
 
-        encoder.finish(timestamp).map_err(|err| err.to_string())
+        Ok(encoder.finish(timestamp)?)
     }
 
-    fn from_webp_animation(data: &[u8], action: u32) -> Result<Self, String> {
-        let mut decoder = AnimationDecoder::new(data).map_err(|err| err.to_string())?;
+    fn from_webp_animation(data: &[u8], action: u32) -> Result<Self> {
+        let mut decoder = AnimationDecoder::new(data)?;
         let info = decoder.info();
         let (width, height) = (info.width, info.height);
-        let decoded = decoder.decode_all().map_err(|err| err.to_string())?;
+        let decoded = decoder.decode_all()?;
 
         let is_single = decoded.len() <= 1;
 
@@ -273,7 +264,7 @@ impl Frames for Vec<Frame> {
             .into_iter()
             .map(|frame| {
                 let image: DynamicImage = RgbaImage::from_raw(width, height, frame.data)
-                    .ok_or("Failed creating from raw RGBA".to_string())?
+                    .ok_or(anyhow!("Failed creating from raw RGBA"))?
                     .into();
 
                 let delay = if is_single {

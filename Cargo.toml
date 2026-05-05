@@ -17,6 +17,7 @@ ab_glyph = "0.2.32"
 webpx = { path = "../webpx", features = ["animation"] }
 hex_color = "3.0.0"
 itertools = "0.14.0"
+anyhow = "1.0.102"
 
 [profile.release]
 lto = "fat"

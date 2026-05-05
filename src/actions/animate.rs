@@ -1,5 +1,7 @@
 use std::{any::Any, sync::Arc};
 
+use anyhow::{anyhow, bail};
+
 use crate::{
     AppState,
     action::{Action, ActionResult},
@@ -98,7 +100,7 @@ impl Action for Animate {
         Box::pin(async move {
             let mut last = images.extract_action(-1);
             if last.is_empty() {
-                return Err("No image to animate!".to_string());
+                bail!("No image to animate!");
             }
             let image_duration = last.duration();
             let duration = image_duration.max((self.2.abs_diff(self.1) / self.3 as u32) * 16);
@@ -129,7 +131,7 @@ impl Action for Animate {
             for ts in (0..=duration).step_by(16) {
                 let mut image = last
                     .get_at_timestamp(ts % image_duration)
-                    .ok_or("Failed to get frame for combine.".to_string())?
+                    .ok_or(anyhow!("Failed to get frame for combine."))?
                     .clone();
                 image.delay = 16;
 

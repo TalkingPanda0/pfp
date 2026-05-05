@@ -62,12 +62,10 @@ impl Action for Pad {
                 if self.2 {
                     if copy_w > 0 && copy_h > 0 {
                         let sub = image.view(src_x, src_y, copy_w, copy_h).to_image();
-                        out.copy_from(&sub, dst_x, dst_y)
-                            .map_err(|e| e.to_string())?;
+                        out.copy_from(&sub, dst_x, dst_y)?;
                     }
                 } else {
-                    out.copy_from(image, dst_x, dst_y)
-                        .map_err(|e| e.to_string())?;
+                    out.copy_from(image, dst_x, dst_y)?;
                 }
 
                 frame.image = out;
