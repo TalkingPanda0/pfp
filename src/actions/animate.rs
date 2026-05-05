@@ -1,12 +1,10 @@
-use std::{any::Any, f32::consts::PI, sync::Arc};
-
-use image::{DynamicImage, GenericImage, GenericImageView, Rgba};
-use imageproc::geometric_transformations::{Interpolation, rotate_about_center};
+use std::{any::Any, sync::Arc};
 
 use crate::{
     AppState,
     action::{Action, ActionResult},
-    frames::Frame,
+    actions::{opacity::Opacity, pad::Pad, rotate::Rotate},
+    frames::{Frame, Frames},
 };
 
 #[derive(Clone, Copy)]
@@ -27,63 +25,38 @@ impl Property {
             _ => None,
         }
     }
-
-    fn apply(&self, image: &DynamicImage, value: i32) -> Result<DynamicImage, String> {
+    fn get_action(&self, value: i32) -> Box<dyn Action> {
         match self {
-            Self::Opacity => Self::apply_opacity(image, value.unsigned_abs()),
-            Self::X => Self::apply_pos(
-                image,
-                (image.width() as f32 * (value as f32 / 100.0)) as i32,
-                0,
-            ),
-            Self::Y => Self::apply_pos(
-                image,
-                0,
-                (image.height() as f32 * (value as f32 / 100.0)) as i32,
-            ),
-            Self::Rotation => {
-                Ok(rotate_about_center(&image.to_rgba8(), value as f32 * (PI / 180.0), Interpolation::Bilinear, Rgba([0,0,0,0])).into()) 
-            }
+            Property::Opacity => Box::new(Opacity::new(value as u8)),
+            Property::Rotation => Box::new(Rotate::new(value)),
+            Property::X => Box::new(Pad::new(value,0,true)),
+            Property::Y => Box::new(Pad::new(0,value,true)),
         }
-    }
-
-    fn apply_pos(image: &DynamicImage, x: i32, y: i32) -> Result<DynamicImage, String> {
-
-        let (w, h) = image.dimensions();
-        let mut out = DynamicImage::new_rgba8(w, h);
-
-        let src_x = x.max(0) as u32;
-        let src_y = y.max(0) as u32;
-
-        let dst_x = (-x).max(0) as u32;
-        let dst_y = (-y).max(0) as u32;
-
-        let copy_w = w.saturating_sub(src_x + dst_x);
-        let copy_h = h.saturating_sub(src_y + dst_y);
-
-        if copy_w > 0 && copy_h > 0 {
-            let sub = image.view(src_x, src_y, copy_w, copy_h).to_image();
-            out.copy_from(&sub, dst_x, dst_y).ok();
-        }
-
-        Ok(out)
-    }
-
-    fn apply_opacity(image: &DynamicImage, opacity: u32) -> Result<DynamicImage, String> {
-        let mut out = image.clone();
-
-        out.as_mut_rgba8()
-            .ok_or("Failed to get image as rgba8".to_string())?
-            .iter_mut()
-            .skip(3)
-            .step_by(4)
-            .for_each(|pixel| *pixel = (*pixel as f32 * (opacity as f32 / 100.0)).round() as u8);
-        Ok(out)
     }
 }
 
-#[derive(Clone)]
-pub struct Animate(Property, i32, i32, i8);
+#[derive(Clone, Copy)]
+pub enum AnimateMode {
+    Yoyo,
+    Loop,
+    Continue,
+    End,
+}
+
+impl AnimateMode {
+    fn parse(input: &str) -> Option<Self> {
+        match input {
+            "yoyo" => Some(Self::Yoyo),
+            "loop" => Some(Self::Loop),
+            "continue" => Some(Self::Continue),
+            "end" => Some(Self::End),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Animate(Property, i32, i32, i8, AnimateMode);
 
 impl Action for Animate {
     fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _discord: &Arc<AppState>) -> bool {
@@ -94,7 +67,7 @@ impl Action for Animate {
         else {
             return false;
         };
-        let (property, start, end, speed) = (
+        let (property, start, end, speed, mode) = (
             arguments
                 .next()
                 .and_then(Property::parse)
@@ -111,27 +84,75 @@ impl Action for Animate {
                 .next()
                 .and_then(|arg| arg.parse().ok())
                 .unwrap_or(5),
+            arguments
+                .next()
+                .and_then(AnimateMode::parse)
+                .unwrap_or(AnimateMode::End),
         );
 
-        actions.push(Box::new(Animate(property, start, end, speed)));
+        actions.push(Box::new(Animate(property, start, end, speed, mode)));
         true
     }
 
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {
         Box::pin(async move {
-            let last = images.pop().ok_or("No image to animate.")?;
-            let reverse = self.2 < self.1;
-            if reverse {
-                for value in (self.2..=self.1).rev().step_by(self.3 as usize) {
-                    let image = self.0.apply(&last.image, value)?;
-                    images.push(Frame::new(image, 16, action));
+            let mut last = images.extract_action(-1);
+            if last.is_empty() {
+                return Err("No image to animate!".to_string());
+            }
+            let image_duration = last.duration();
+            let duration = image_duration.max((self.2.abs_diff(self.1) / self.3 as u32) * 16);
+
+            let mut range: Box<dyn Iterator<Item = i32> + Send> = if self.1 > self.2 {
+                let range = (self.2..=self.1).rev().step_by(self.3 as usize);
+                match self.4 {
+                    AnimateMode::Yoyo => {
+                        let backward = (self.2..=self.1).step_by(self.3 as usize);
+                        Box::new(range.chain(backward).cycle())
+                    }
+                    AnimateMode::End | AnimateMode::Continue => Box::new(range),
+                    AnimateMode::Loop => Box::new(range.cycle()),
                 }
             } else {
-                for value in (self.1..=self.2).step_by(self.3 as usize) {
-                    let image = self.0.apply(&last.image, value)?;
-                    images.push(Frame::new(image, 16, action));
+                let range = (self.1..=self.2).step_by(self.3 as usize);
+                match self.4 {
+                    AnimateMode::Yoyo => {
+                        let backward = (self.1..=self.2).rev().step_by(self.3 as usize);
+                        Box::new(range.chain(backward).cycle())
+                    }
+                    AnimateMode::End | AnimateMode::Continue => Box::new(range),
+                    AnimateMode::Loop => Box::new(range.cycle()),
                 }
+            };
+            let mut last_value: Option<i32> = None;
+
+            for ts in (0..=duration).step_by(16) {
+                let mut image = last
+                    .get_at_timestamp(ts % image_duration)
+                    .ok_or("Failed to get frame for combine.".to_string())?
+                    .clone();
+                image.delay = 16;
+
+                let value = if let Some(value) = range.next() {
+                    value
+                } else {
+                    if matches!(self.4, AnimateMode::Continue)
+                        && let Some(last_value) = last_value
+                    {
+                        last_value
+                    } else {
+                        break;
+                    }
+                };
+
+                let mut vec = vec![image];
+
+                self.0.get_action(value).apply(&mut vec, action).await?;
+
+                images.push(vec.remove(0));
+                last_value = Some(value);
             }
+
             Ok(())
         })
     }
@@ -142,7 +163,7 @@ impl Action for Animate {
 }
 
 impl Animate {
-    pub fn new(property: Property, start: i32, end: i32, speed: i8) -> Self {
-        Self(property, start,end, speed)
+    pub fn new(property: Property, start: i32, end: i32, speed: i8, mode: AnimateMode) -> Self {
+        Self(property, start, end, speed, mode)
     }
 }

@@ -1,10 +1,7 @@
 use crate::{
     AppState,
     actions::{
-        aliases::Aliases, animate::Animate, column::Column, combine::Combine, copy::Copy,
-        delay::Delay, discordpfp::DiscordPFPAction, grayscale::Grayscale,
-        mirror::Mirror, reverse::Reverse, row::Row, squish::Squish, tenor::Tenor, text::TextAction,
-        times::Times,
+        aliases::Aliases, animate::Animate, column::Column, combine::Combine, copy::Copy, delay::Delay, discordpfp::DiscordPFPAction, grayscale::Grayscale, mirror::Mirror, opacity::Opacity, pad::Pad, reverse::Reverse, rotate::Rotate, row::Row, squish::Squish, tenor::Tenor, text::TextAction, times::Times, url::URLAction
     },
     frames::Frame,
 };
@@ -13,7 +10,7 @@ use std::{any::Any, pin::Pin, sync::Arc};
 pub type ActionResult<'a> = Pin<Box<dyn Future<Output = Result<(), String>> + Send + 'a>>;
 pub type Parser = fn(&str, &mut Vec<Box<dyn Action>>, &Arc<AppState>) -> bool;
 
-static PARSERS: [Parser; 15] = [
+static PARSERS: [Parser; 19] = [
     Grayscale::parse,
     DiscordPFPAction::parse,
     Squish::parse,
@@ -29,11 +26,15 @@ static PARSERS: [Parser; 15] = [
     Reverse::parse,
     Animate::parse,
     Mirror::parse,
+    URLAction::parse,
+    Opacity::parse,
+    Rotate::parse,
+    Pad::parse,
 ];
 
 pub trait Action: Send + Sync + ActionClone {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a>;
-    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, discord: &Arc<AppState>) -> bool
+    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, state: &Arc<AppState>) -> bool
     where
         Self: Sized;
     fn as_any(&self) -> &dyn Any;

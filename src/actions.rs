@@ -13,3 +13,7 @@ pub mod aliases;
 pub mod reverse;
 pub mod animate;
 pub mod mirror;
+pub mod url;
+pub mod opacity;
+pub mod rotate;
+pub mod pad;

@@ -86,11 +86,9 @@ fn split_actions(path: &str) -> Vec<&str> {
         match char {
             '(' => depth += 1,
             ')' => depth -= 1,
-            '/' => {
-                if depth == 0 {
-                    result.push(&path[start..i]);
-                    start = i + 1;
-                }
+            '/' if depth == 0 => {
+                result.push(&path[start..i]);
+                start = i + 1;
             }
             _ => (),
         }
