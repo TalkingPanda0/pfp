@@ -3,7 +3,7 @@ use anyhow::Result;
 use crate::{
     AppState,
     actions::{
-        aliases::Aliases, animate::Animate, column::Column, combine::Combine, copy::Copy, delay::Delay, discordpfp::DiscordPFPAction, grayscale::Grayscale, mirror::Mirror, opacity::Opacity, pad::Pad, reverse::Reverse, rotate::Rotate, row::Row, squish::Squish, tenor::Tenor, text::TextAction, times::Times, url::URLAction
+        aliases::Aliases, animate::Animate, column::Column, combine::Combine, copy::Copy, delay::Delay, discordpfp::DiscordPFPAction, grayscale::Grayscale, mirror::Mirror, opacity::Opacity, pad::Pad, reverse::Reverse, rotate::Rotate, row::Row, scale::Scale, tenor::Tenor, text::TextAction, times::Times, url::URLAction
     },
     frames::Frame,
 };
@@ -15,7 +15,6 @@ pub type Parser = fn(&str, &mut Vec<Box<dyn Action>>, &Arc<AppState>) -> bool;
 static PARSERS: [Parser; 19] = [
     Grayscale::parse,
     DiscordPFPAction::parse,
-    Squish::parse,
     Row::parse,
     Column::parse,
     Copy::parse,
@@ -32,6 +31,7 @@ static PARSERS: [Parser; 19] = [
     Opacity::parse,
     Rotate::parse,
     Pad::parse,
+    Scale::parse
 ];
 
 pub trait Action: Send + Sync + ActionClone {

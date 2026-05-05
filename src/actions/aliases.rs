@@ -4,9 +4,7 @@ use crate::{
     AppState,
     action::{Action, ActionResult},
     actions::{
-        animate::{Animate, AnimateMode, Property},
-        combine::Combine,
-        tenor::Tenor,
+        animate::{Animate, AnimateMode, Property}, combine::Combine, scale::Scale, tenor::Tenor
     },
     frames::Frame,
 };
@@ -32,8 +30,11 @@ impl Action for Aliases {
             "fadein" => {
                 actions.push(Box::new(Animate::new(Property::Opacity, 0, 100, 10,AnimateMode::End)));
                 true
+            },
+            "squish" => {
+                actions.push(Box::new(Scale::new(200,100)));
+                true
             }
-
             _ => false,
         }
     }

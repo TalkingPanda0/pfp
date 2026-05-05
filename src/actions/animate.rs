@@ -5,7 +5,7 @@ use anyhow::{anyhow, bail};
 use crate::{
     AppState,
     action::{Action, ActionResult},
-    actions::{opacity::Opacity, pad::Pad, rotate::Rotate},
+    actions::{opacity::Opacity, pad::Pad, rotate::Rotate,scale::Scale},
     frames::{Frame, Frames},
 };
 
@@ -15,24 +15,30 @@ pub enum Property {
     X,
     Y,
     Rotation,
+    ScaleX,
+    ScaleY,
 }
 
 impl Property {
     fn parse(input: &str) -> Option<Self> {
-        match input {
+        match input.to_ascii_lowercase().as_str() {
             "opacity" => Some(Self::Opacity),
             "x" => Some(Self::X),
             "y" => Some(Self::Y),
             "rotation" | "rotate" => Some(Self::Rotation),
+            "scalex" => Some(Self::ScaleX),
+            "scaley" => Some(Self::ScaleY),
             _ => None,
         }
     }
     fn get_action(&self, value: i32) -> Box<dyn Action> {
         match self {
-            Property::Opacity => Box::new(Opacity::new(value as u8)),
+            Property::Opacity => Box::new(Opacity::new(value.unsigned_abs() as u8)),
             Property::Rotation => Box::new(Rotate::new(value)),
             Property::X => Box::new(Pad::new(value,0,true)),
             Property::Y => Box::new(Pad::new(0,value,true)),
+            Property::ScaleX => Box::new(Scale::new(value.unsigned_abs(),100)), 
+            Property::ScaleY => Box::new(Scale::new(100,value.unsigned_abs())), 
         }
     }
 }
@@ -47,7 +53,7 @@ pub enum AnimateMode {
 
 impl AnimateMode {
     fn parse(input: &str) -> Option<Self> {
-        match input {
+        match input.to_ascii_lowercase().as_str() {
             "yoyo" => Some(Self::Yoyo),
             "loop" => Some(Self::Loop),
             "continue" => Some(Self::Continue),
