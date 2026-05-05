@@ -48,6 +48,7 @@ impl Action for Pad {
                     ((w as i32 + x) as u32, (h as i32 + y) as u32)
                 };
 
+                Frame::can_fit(ow, oh)?;
                 let mut out = DynamicImage::new_rgba8(ow, oh);
 
                 let src_x = x.max(0) as u32;

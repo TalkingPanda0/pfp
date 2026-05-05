@@ -21,6 +21,7 @@ impl Action for Squish {
 
                 let height = frame.image.height();
                 let width = frame.image.width() * 2;
+                Frame::can_fit(width, height)?;
                 frame.image = frame.image.resize_exact(width, height, image::imageops::FilterType::Triangle);
 
                 if !self.0 {

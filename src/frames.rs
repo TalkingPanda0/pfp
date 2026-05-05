@@ -15,6 +15,12 @@ pub struct Frame {
 }
 
 impl Frame {
+    pub fn can_fit(width: u32, height:u32 ) -> Result<()> {
+        if width > MAX_SIZE || height > MAX_SIZE || width == 0 || height == 0 {
+            bail!("Invalid dimensions!");
+        }
+        Ok(())
+    }
     pub fn new(image: DynamicImage, delay: i32, action: u32) -> Self {
         Self {
             image,
@@ -180,6 +186,7 @@ impl Frames for Vec<Frame> {
 
     fn column(&mut self, action: u32) -> Result<()> {
         let (width, height) = self.dimensions_column();
+        Frame::can_fit(width, height)?;
         let mut canvas =
             DynamicImage::ImageRgba8(ImageBuffer::from_pixel(width, height, Rgba([0, 0, 0, 0])));
         let mut y = 0;
@@ -197,6 +204,7 @@ impl Frames for Vec<Frame> {
 
     fn row(&mut self, action: u32) -> Result<()> {
         let (width, height) = self.dimensions_row();
+        Frame::can_fit(width, height)?;
         let mut canvas =
             DynamicImage::ImageRgba8(ImageBuffer::from_pixel(width, height, Rgba([0, 0, 0, 0])));
         let mut x = 0;
@@ -213,11 +221,7 @@ impl Frames for Vec<Frame> {
     }
 
     fn resize_all(&mut self, width: u32, height: u32) -> Result<()> {
-        if width > MAX_SIZE {
-            bail!("TOO FAT! {width}/{MAX_SIZE}");
-        } else if height > MAX_SIZE {
-            bail!("HEIGHT FAT! {height}/{MAX_SIZE}");
-        }
+        Frame::can_fit(width, height)?;
 
         for frame in self.iter_mut() {
             frame.resize(width, height)?;

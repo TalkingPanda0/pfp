@@ -18,7 +18,7 @@ impl Action for Reverse {
                 actions.push(Box::new(Reverse(false)));
                 true
             }
-            "reverseesrever" => {
+            "reverseesrever" | "yoyo" => {
                 actions.push(Box::new(Reverse(true)));
                 true
             }
