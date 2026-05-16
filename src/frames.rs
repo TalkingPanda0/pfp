@@ -1,6 +1,11 @@
+use std::io::Cursor;
+
 use ab_glyph::{FontRef, PxScale};
 use anyhow::{Result, anyhow, bail};
-use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Rgba, RgbaImage};
+use image::{
+    AnimationDecoder as ImageAnimationDecoder, DynamicImage, GenericImage, GenericImageView, ImageBuffer, ImageReader, Rgba,
+    RgbaImage, codecs::gif::GifDecoder,
+};
 use imageproc::drawing::{draw_text_mut, text_size};
 use itertools::Itertools;
 use webpx::{AnimationDecoder, AnimationEncoder, Encoder, Unstoppable, decode_rgba};
@@ -15,7 +20,7 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn can_fit(width: u32, height:u32 ) -> Result<()> {
+    pub fn can_fit(width: u32, height: u32) -> Result<()> {
         if width > MAX_SIZE || height > MAX_SIZE || width == 0 || height == 0 {
             bail!("Invalid dimensions!");
         }
@@ -102,6 +107,7 @@ pub trait Frames: Sized {
     fn resize_all_to_max(&mut self) -> Result<(u32, u32)>;
     fn encode(&mut self) -> Result<Vec<u8>>;
     fn from_webp_animation(data: &[u8], action: u32) -> Result<Self>;
+    fn from_unknown_data(data: &[u8], action: u32) -> Result<Self>;
 }
 
 impl Frames for Vec<Frame> {
@@ -279,5 +285,25 @@ impl Frames for Vec<Frame> {
                 Ok(Frame::new(image, delay, action))
             })
             .collect()
+    }
+
+    fn from_unknown_data(data: &[u8], action: u32) -> Result<Self> {
+        let guessed = ImageReader::new(Cursor::new(data)).with_guessed_format()?;
+        if guessed.format() == Some(image::ImageFormat::Gif) {
+            let decoder = GifDecoder::new(Cursor::new(data))?;
+            Ok(decoder.into_frames().filter_map(|frame| {
+                frame.map(|f| Frame {
+                    delay: f.delay().numer_denom_ms().0 as i32,
+                    action,
+                    image: f.into_buffer().into(),
+                }).ok()
+            }).collect())
+        } else {
+            Ok(vec![Frame {
+                image: guessed.decode()?,
+                action,
+                delay: 100,
+            }])
+        }
     }
 }
