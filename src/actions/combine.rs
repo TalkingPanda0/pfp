@@ -73,19 +73,18 @@ impl Action for Combine {
             let duration = base_duration.max(overlay_duration);
 
             for ts in (0..=duration).step_by(min_delay as usize) {
-                let mut base_frame = base
+                let base_frame = base
                     .get_at_timestamp(ts % base_duration)
-                    .ok_or(anyhow!("Failed to get frame for combine."))?
-                    .clone();
+                    .ok_or(anyhow!("Failed to get frame for combine."))?;
                 let overlay_frame = overlay
                     .get_at_timestamp(ts % overlay_duration)
                     .ok_or(anyhow!("Failed to get frame for combine."))?;
-                combine(&mut base_frame, overlay_frame, self.0)?;
+                combine(base_frame, overlay_frame, self.0)?;
 
                 images.push(Frame {
                     delay: min_delay as i32,
                     action,
-                    ..base_frame
+                    image: std::mem::take(&mut base_frame.image),
                 });
             }
 
