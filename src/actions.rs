@@ -17,3 +17,4 @@ pub mod opacity;
 pub mod rotate;
 pub mod pad;
 pub mod scale;
+pub mod klipy;

@@ -3,7 +3,7 @@ use anyhow::Result;
 use crate::{
     AppState,
     actions::{
-        aliases::Aliases, animate::Animate, column::Column, combine::Combine, copy::Copy, delay::Delay, discordpfp::DiscordPFPAction, grayscale::Grayscale, mirror::Mirror, opacity::Opacity, pad::Pad, reverse::Reverse, rotate::Rotate, row::Row, scale::Scale, tenor::Tenor, text::TextAction, times::Times, url::URLAction
+        aliases::Aliases, animate::Animate, column::Column, combine::Combine, copy::Copy, delay::Delay, discordpfp::DiscordPFPAction, grayscale::Grayscale, klipy::Klipy, mirror::Mirror, opacity::Opacity, pad::Pad, reverse::Reverse, rotate::Rotate, row::Row, scale::Scale, tenor::Tenor, text::TextAction, times::Times, url::URLAction
     },
     frames::Frame,
 };
@@ -12,7 +12,7 @@ use std::{any::Any, pin::Pin, sync::Arc};
 pub type ActionResult<'a> = Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>;
 pub type Parser = fn(&str, &mut Vec<Box<dyn Action>>, &Arc<AppState>) -> bool;
 
-static PARSERS: [Parser; 19] = [
+static PARSERS: [Parser; 20] = [
     Grayscale::parse,
     DiscordPFPAction::parse,
     Row::parse,
@@ -31,7 +31,8 @@ static PARSERS: [Parser; 19] = [
     Opacity::parse,
     Rotate::parse,
     Pad::parse,
-    Scale::parse
+    Scale::parse,
+    Klipy::parse
 ];
 
 pub trait Action: Send + Sync + ActionClone {
