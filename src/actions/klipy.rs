@@ -1,12 +1,12 @@
 use std::{any::Any, env, sync::Arc};
 
-use anyhow::{anyhow};
+use anyhow::anyhow;
 use serde::Deserialize;
 
 use crate::{
     AppState,
     action::{Action, ActionResult},
-    frames::{Frame,Frames},
+    frames::{Frame, Frames},
 };
 
 #[derive(Clone)]
@@ -15,6 +15,7 @@ pub struct Klipy {
 }
 
 impl Action for Klipy {
+    #[hotpath::measure]
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {
         Box::pin(async move {
             let api_key = env::var("KLIPY_TOKEN")?;
@@ -25,10 +26,18 @@ impl Action for Klipy {
             let result = reqwest::get(url).await?.error_for_status()?.text().await?;
             let result: ItemResult = serde_json::from_str(&result)?;
 
-            let url = &result.data.data.first().ok_or(anyhow!("No images from klipy"))?.file.hd.webp.url;
+            let url = &result
+                .data
+                .data
+                .first()
+                .ok_or(anyhow!("No images from klipy"))?
+                .file
+                .hd
+                .webp
+                .url;
             let image_bytes = reqwest::get(url).await?.error_for_status()?.bytes().await?;
 
-            images.extend(Vec::from_webp_animation(&image_bytes,action)?);
+            images.extend(Vec::from_webp_animation(&image_bytes, action)?);
 
             Ok(())
         })

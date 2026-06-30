@@ -3,7 +3,10 @@ use anyhow::Result;
 use crate::{
     AppState,
     actions::{
-        aliases::Aliases, animate::Animate, column::Column, combine::Combine, copy::Copy, delay::Delay, discordpfp::DiscordPFPAction, grayscale::Grayscale, klipy::Klipy, mirror::Mirror, opacity::Opacity, pad::Pad, reverse::Reverse, rotate::Rotate, row::Row, scale::Scale, tenor::Tenor, text::TextAction, times::Times, url::URLAction
+        aliases::Aliases, animate::Animate, column::Column, combine::Combine, copy::Copy,
+        delay::Delay, discordpfp::DiscordPFPAction, grayscale::Grayscale, klipy::Klipy,
+        mirror::Mirror, opacity::Opacity, pad::Pad, reverse::Reverse, rotate::Rotate, row::Row,
+        scale::Scale, tenor::Tenor, text::TextAction, times::Times, url::URLAction,
     },
     frames::Frame,
 };
@@ -32,7 +35,7 @@ static PARSERS: [Parser; 20] = [
     Rotate::parse,
     Pad::parse,
     Scale::parse,
-    Klipy::parse
+    Klipy::parse,
 ];
 
 pub trait Action: Send + Sync + ActionClone {
@@ -67,6 +70,7 @@ pub trait ActionList {
 }
 
 impl ActionList for Vec<Box<dyn Action>> {
+    #[hotpath::measure]
     async fn apply_actions(&mut self, images: &mut Vec<Frame>) -> Result<()> {
         for (i, action) in self.iter().enumerate() {
             action.apply(images, i as u32).await?;
@@ -75,6 +79,7 @@ impl ActionList for Vec<Box<dyn Action>> {
     }
 }
 
+#[hotpath::measure]
 pub fn parse_actions(inputs: &[&str], state: &Arc<AppState>) -> Vec<Box<dyn Action>> {
     let mut actions: Vec<Box<dyn Action>> = Vec::with_capacity(inputs.len());
     for input in inputs {

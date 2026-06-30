@@ -3,12 +3,14 @@ use std::io::Cursor;
 use ab_glyph::{FontRef, PxScale};
 use anyhow::{Result, anyhow, bail};
 use image::{
-    AnimationDecoder as ImageAnimationDecoder, DynamicImage, GenericImage, GenericImageView, ImageBuffer, ImageReader, Rgba,
-    RgbaImage, codecs::gif::GifDecoder,
+    AnimationDecoder as ImageAnimationDecoder, DynamicImage, GenericImage, GenericImageView,
+    ImageBuffer, ImageReader, Rgba, RgbaImage, codecs::gif::GifDecoder,
 };
 use imageproc::drawing::{draw_text_mut, text_size};
 use itertools::Itertools;
-use webpx::{AnimationDecoder, AnimationEncoder, Encoder, Unstoppable, decode_rgba};
+use webpx::{
+    AnimationDecoder, AnimationEncoder, Encoder, Unstoppable, decode_rgba,
+};
 
 const MAX_SIZE: u32 = 16383;
 
@@ -18,7 +20,7 @@ pub struct Frame {
     pub delay: i32,
     pub action: u32,
 }
-
+#[hotpath::measure_all]
 impl Frame {
     pub fn can_fit(width: u32, height: u32) -> Result<()> {
         if width > MAX_SIZE || height > MAX_SIZE || width == 0 || height == 0 {
@@ -44,17 +46,34 @@ impl Frame {
     }
 
     pub fn resize(&mut self, width: u32, height: u32) -> Result<()> {
+
+        if self.image.dimensions() == (width,height) {
+            return Ok(());
+        }
+
         let resized = self
             .image
             .resize(width, height, image::imageops::FilterType::Triangle);
-        let mut canvas =
-            DynamicImage::ImageRgba8(ImageBuffer::from_pixel(width, height, Rgba([0, 0, 0, 0])));
 
-        let (w, h) = resized.dimensions();
+        let (w,h) = resized.dimensions();
+        
+        if w == width && height == h {
+            self.image = resized;
+            return Ok(());
+        }
 
-        canvas.copy_from(&resized, (width - w) / 2, (height - h) / 2)?;
+        let resized = resized.into_rgba8();
 
-        self.image = canvas;
+        let mut canvas = ImageBuffer::from_pixel(width, height, Rgba([0, 0, 0, 0]));
+
+        image::imageops::replace(
+            &mut canvas,
+            &resized,
+            ((width - w) / 2) as i64,
+            ((height - h) / 2) as i64,
+        );
+
+        self.image = DynamicImage::ImageRgba8(canvas);
         Ok(())
     }
 }
@@ -110,6 +129,7 @@ pub trait Frames: Sized {
     fn from_unknown_data(data: &[u8], action: u32) -> Result<Self>;
 }
 
+#[hotpath::measure_all]
 impl Frames for Vec<Frame> {
     fn clone_action(&self, action: i32, current_action: u32) -> Vec<Frame> {
         let action = self.get_action_from_relative(action);
@@ -291,13 +311,18 @@ impl Frames for Vec<Frame> {
         let guessed = ImageReader::new(Cursor::new(data)).with_guessed_format()?;
         if guessed.format() == Some(image::ImageFormat::Gif) {
             let decoder = GifDecoder::new(Cursor::new(data))?;
-            Ok(decoder.into_frames().filter_map(|frame| {
-                frame.map(|f| Frame {
-                    delay: f.delay().numer_denom_ms().0 as i32,
-                    action,
-                    image: f.into_buffer().into(),
-                }).ok()
-            }).collect())
+            Ok(decoder
+                .into_frames()
+                .filter_map(|frame| {
+                    frame
+                        .map(|f| Frame {
+                            delay: f.delay().numer_denom_ms().0 as i32,
+                            action,
+                            image: f.into_buffer().into(),
+                        })
+                        .ok()
+                })
+                .collect())
         } else {
             Ok(vec![Frame {
                 image: guessed.decode()?,

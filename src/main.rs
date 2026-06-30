@@ -1,6 +1,4 @@
 #![feature(trim_prefix_suffix)]
-#[global_allocator]
-static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 mod action;
 mod actions;
@@ -38,6 +36,7 @@ impl AppState {
 }
 
 #[tokio::main]
+#[hotpath::main]
 async fn main() {
     Cache::init().await.unwrap();
     let state: Arc<AppState> = Arc::new(AppState::new());
