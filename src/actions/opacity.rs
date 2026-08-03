@@ -31,7 +31,8 @@ impl Action for Opacity {
             let frames = images.get_mut_action(-1);
             for frame in frames {
                 frame.action = action;
-                frame.image
+                frame
+                    .image
                     .as_mut_rgba8()
                     .ok_or(anyhow!("Failed to get image as rgba8"))?
                     .iter_mut()

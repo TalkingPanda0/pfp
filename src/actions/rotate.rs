@@ -1,6 +1,6 @@
 use std::{any::Any, f32::consts::PI, sync::Arc};
 
-use image::{Rgba};
+use image::Rgba;
 use imageproc::geometric_transformations::{Interpolation, rotate_about_center};
 
 use crate::{
@@ -31,7 +31,12 @@ impl Action for Rotate {
         Box::pin(async move {
             let frames = images.get_mut_action(-1);
             for frame in frames {
-                let rotated = rotate_about_center(&frame.image.to_rgba8(), self.0 as f32 * (PI / 180.0), Interpolation::Bilinear, Rgba([0,0,0,0]));
+                let rotated = rotate_about_center(
+                    &frame.image.to_rgba8(),
+                    self.0 as f32 * (PI / 180.0),
+                    Interpolation::Bilinear,
+                    Rgba([0, 0, 0, 0]),
+                );
                 frame.image = rotated.into();
                 frame.action = action;
             }

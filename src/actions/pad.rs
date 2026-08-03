@@ -45,7 +45,7 @@ impl Action for Pad {
                 let (ow, oh) = if self.2 {
                     (w, h)
                 } else {
-                    (w + x.unsigned_abs() , h + y.unsigned_abs())
+                    (w + x.unsigned_abs(), h + y.unsigned_abs())
                 };
 
                 Frame::can_fit(ow, oh)?;

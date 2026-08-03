@@ -8,9 +8,7 @@ use image::{
 };
 use imageproc::drawing::{draw_text_mut, text_size};
 use itertools::Itertools;
-use webpx::{
-    AnimationDecoder, AnimationEncoder, Encoder, Unstoppable, decode_rgba,
-};
+use webpx::{AnimationDecoder, AnimationEncoder, Encoder, Unstoppable, decode_rgba};
 
 const MAX_SIZE: u32 = 16383;
 
@@ -46,8 +44,7 @@ impl Frame {
     }
 
     pub fn resize(&mut self, width: u32, height: u32) -> Result<()> {
-
-        if self.image.dimensions() == (width,height) {
+        if self.image.dimensions() == (width, height) {
             return Ok(());
         }
 
@@ -55,8 +52,8 @@ impl Frame {
             .image
             .resize(width, height, image::imageops::FilterType::Triangle);
 
-        let (w,h) = resized.dimensions();
-        
+        let (w, h) = resized.dimensions();
+
         if w == width && height == h {
             self.image = resized;
             return Ok(());

@@ -14,7 +14,7 @@ impl Cache {
     #[inline]
     pub fn format_path(avatar: &str) -> String {
         format!(".cache/avatar_{avatar}.webp")
-    }   
+    }
 
     #[inline]
     async fn path_exists(path: &str) -> bool {

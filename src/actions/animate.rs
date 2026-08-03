@@ -5,7 +5,7 @@ use anyhow::{anyhow, bail};
 use crate::{
     AppState,
     action::{Action, ActionResult},
-    actions::{opacity::Opacity, pad::Pad, rotate::Rotate,scale::Scale},
+    actions::{opacity::Opacity, pad::Pad, rotate::Rotate, scale::Scale},
     frames::{Frame, Frames},
 };
 
@@ -35,10 +35,10 @@ impl Property {
         match self {
             Property::Opacity => Box::new(Opacity::new(value.unsigned_abs() as u8)),
             Property::Rotation => Box::new(Rotate::new(value)),
-            Property::X => Box::new(Pad::new(value,0,true)),
-            Property::Y => Box::new(Pad::new(0,value,true)),
-            Property::ScaleX => Box::new(Scale::new(value.unsigned_abs(),100)), 
-            Property::ScaleY => Box::new(Scale::new(100,value.unsigned_abs())), 
+            Property::X => Box::new(Pad::new(value, 0, true)),
+            Property::Y => Box::new(Pad::new(0, value, true)),
+            Property::ScaleX => Box::new(Scale::new(value.unsigned_abs(), 100)),
+            Property::ScaleY => Box::new(Scale::new(100, value.unsigned_abs())),
         }
     }
 }

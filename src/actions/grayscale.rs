@@ -1,17 +1,16 @@
 use std::sync::Arc;
 
-use crate::{AppState, action::{Action, ActionResult}, frames::Frame};
-
+use crate::{
+    AppState,
+    action::{Action, ActionResult},
+    frames::Frame,
+};
 
 #[derive(Clone)]
 pub struct Grayscale(bool);
 
 impl Action for Grayscale {
-    fn apply<'a>(
-        &'a self,
-        images: &'a mut Vec<Frame>,
-        action: u32,
-    ) -> ActionResult<'a> {
+    fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {
         Box::pin(async move {
             for frame in images.iter_mut() {
                 frame.image = frame.image.grayscale();
@@ -29,7 +28,9 @@ impl Action for Grayscale {
         match input.strip_prefix("grayscale") {
             Some("") => actions.push(Box::new(Grayscale(false))),
             Some("all") => actions.push(Box::new(Grayscale(true))),
-            _ => {return false; },
+            _ => {
+                return false;
+            }
         }
         true
     }
@@ -37,4 +38,3 @@ impl Action for Grayscale {
         self
     }
 }
-

@@ -1,14 +1,20 @@
 use std::sync::Arc;
 
 use crate::{
-    AppState, action::{Action, ActionResult}, frames::Frames
+    AppState,
+    action::{Action, ActionResult},
+    frames::Frames,
 };
 
 #[derive(Clone)]
 pub struct Row;
 
 impl Action for Row {
-    fn apply<'a>(&'a self, images: &'a mut Vec<crate::frames::Frame>,action: u32) -> ActionResult<'a> {
+    fn apply<'a>(
+        &'a self,
+        images: &'a mut Vec<crate::frames::Frame>,
+        action: u32,
+    ) -> ActionResult<'a> {
         Box::pin(async move {
             images.row(action)?;
             Ok(())

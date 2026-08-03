@@ -61,11 +61,11 @@ async fn pfp(State(state): State<Arc<AppState>>, Path(path): Path<String>) -> im
     let response_bytes = match result {
         Ok(()) => match images.encode() {
             Ok(bytes) => bytes,
-            Err(err) => {
-                get_error_image(err.to_string()).unwrap_or_else(|e| format!("AAAAAAAAa {e}!").into_bytes())
-            }
+            Err(err) => get_error_image(err.to_string())
+                .unwrap_or_else(|e| format!("AAAAAAAAa {e}!").into_bytes()),
         },
-        Err(err) => get_error_image(err.to_string()).unwrap_or_else(|e| format!("AAAAAAAAa {e}!").into_bytes()),
+        Err(err) => get_error_image(err.to_string())
+            .unwrap_or_else(|e| format!("AAAAAAAAa {e}!").into_bytes()),
     };
 
     (
