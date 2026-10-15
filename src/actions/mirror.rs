@@ -1,28 +1,31 @@
 use std::{any::Any, sync::Arc};
 
 use image::metadata::Orientation;
+use linkme::distributed_slice;
 
 use crate::{
     AppState,
-    action::{Action, ActionResult},
+    action::{Action, ActionResult, PARSERS},
     frames::{Frame, Frames},
 };
 
 #[derive(Clone, Copy)]
 pub struct Mirror(Orientation);
 
-impl Action for Mirror {
-    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _discord: &Arc<AppState>) -> bool {
-        if input.eq_ignore_ascii_case("mirror") {
-            actions.push(Box::new(Self(Orientation::FlipHorizontal)));
-            true
-        } else if input.eq_ignore_ascii_case("flip") {
-            actions.push(Box::new(Self(Orientation::FlipVertical)));
-            true
-        } else {
-            false
-        }
+#[distributed_slice(PARSERS)]
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _discord: &Arc<AppState>) -> bool {
+    if input.eq_ignore_ascii_case("mirror") {
+        actions.push(Box::new(Mirror(Orientation::FlipHorizontal)));
+        true
+    } else if input.eq_ignore_ascii_case("flip") {
+        actions.push(Box::new(Mirror(Orientation::FlipVertical)));
+        true
+    } else {
+        false
     }
+}
+
+impl Action for Mirror {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, _action: u32) -> ActionResult<'a> {
         Box::pin(async move {
             images

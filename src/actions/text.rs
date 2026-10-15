@@ -5,10 +5,11 @@ use anyhow::Result;
 use hex_color::HexColor;
 use image::{DynamicImage, GenericImageView, Rgba};
 use imageproc::drawing::{draw_text_mut, text_size};
+use linkme::distributed_slice;
 
 use crate::{
     AppState,
-    action::{Action, ActionResult},
+    action::{Action, ActionResult, PARSERS},
     frames::{Frame, Frames},
 };
 
@@ -114,40 +115,42 @@ impl TextAction {
     }
 }
 
-impl Action for TextAction {
-    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _: &Arc<AppState>) -> bool {
-        let Some(mut arguments) = input
-            .strip_prefix("text(")
-            .and_then(|s| s.strip_suffix(")"))
-            .map(|s| s.split(","))
-        else {
-            return false;
-        };
-        let (text, alignment, color, scale, x, y) = (
-            arguments.next().unwrap_or(""),
-            arguments
-                .next()
-                .and_then(Alignment::parse)
-                .unwrap_or(Alignment::Bottom),
-            arguments
-                .next()
-                .and_then(parse_color)
-                .unwrap_or(Rgba([255, 255, 255, 255])),
-            arguments.next().and_then(|s| s.parse::<f32>().ok()),
-            arguments.next().and_then(|s| s.parse::<i32>().ok()),
-            arguments.next().and_then(|s| s.parse::<i32>().ok()),
-        );
+#[distributed_slice(PARSERS)]
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _: &Arc<AppState>) -> bool {
+    let Some(mut arguments) = input
+        .strip_prefix("text(")
+        .and_then(|s| s.strip_suffix(")"))
+        .map(|s| s.split(","))
+    else {
+        return false;
+    };
+    let (text, alignment, color, scale, x, y) = (
+        arguments.next().unwrap_or(""),
+        arguments
+            .next()
+            .and_then(Alignment::parse)
+            .unwrap_or(Alignment::Bottom),
+        arguments
+            .next()
+            .and_then(parse_color)
+            .unwrap_or(Rgba([255, 255, 255, 255])),
+        arguments.next().and_then(|s| s.parse::<f32>().ok()),
+        arguments.next().and_then(|s| s.parse::<i32>().ok()),
+        arguments.next().and_then(|s| s.parse::<i32>().ok()),
+    );
 
-        actions.push(Box::new(TextAction(
-            text.to_string(),
-            alignment,
-            color,
-            scale,
-            x,
-            y,
-        )));
-        true
-    }
+    actions.push(Box::new(TextAction(
+        text.to_string(),
+        alignment,
+        color,
+        scale,
+        x,
+        y,
+    )));
+    true
+}
+
+impl Action for TextAction {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, _action: u32) -> ActionResult<'a> {
         Box::pin(async move {
             for frame in images.get_mut_action(-1) {

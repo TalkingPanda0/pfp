@@ -18,7 +18,6 @@ pub struct Frame {
     pub delay: i32,
     pub action: u32,
 }
-#[hotpath::measure_all]
 impl Frame {
     pub fn can_fit(width: u32, height: u32) -> Result<()> {
         if width > MAX_SIZE || height > MAX_SIZE || width == 0 || height == 0 {
@@ -126,7 +125,6 @@ pub trait Frames: Sized {
     fn from_unknown_data(data: &[u8], action: u32) -> Result<Self>;
 }
 
-#[hotpath::measure_all]
 impl Frames for Vec<Frame> {
     fn clone_action(&self, action: i32, current_action: u32) -> Vec<Frame> {
         let action = self.get_action_from_relative(action);

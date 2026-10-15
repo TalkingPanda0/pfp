@@ -1,48 +1,17 @@
 use anyhow::Result;
+use linkme::distributed_slice;
 
-use crate::{
-    AppState,
-    actions::{
-        aliases::Aliases, animate::Animate, column::Column, combine::Combine, copy::Copy,
-        delay::Delay, discordpfp::DiscordPFPAction, grayscale::Grayscale, klipy::Klipy,
-        mirror::Mirror, opacity::Opacity, pad::Pad, reverse::Reverse, rotate::Rotate, row::Row,
-        scale::Scale, tenor::Tenor, text::TextAction, times::Times, url::URLAction,
-    },
-    frames::Frame,
-};
+use crate::{AppState, frames::Frame};
 use std::{any::Any, pin::Pin, sync::Arc};
 
 pub type ActionResult<'a> = Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>;
 pub type Parser = fn(&str, &mut Vec<Box<dyn Action>>, &Arc<AppState>) -> bool;
 
-static PARSERS: [Parser; 20] = [
-    Grayscale::parse,
-    DiscordPFPAction::parse,
-    Row::parse,
-    Column::parse,
-    Copy::parse,
-    Times::parse,
-    Tenor::parse,
-    Combine::parse,
-    TextAction::parse,
-    Delay::parse,
-    Aliases::parse,
-    Reverse::parse,
-    Animate::parse,
-    Mirror::parse,
-    URLAction::parse,
-    Opacity::parse,
-    Rotate::parse,
-    Pad::parse,
-    Scale::parse,
-    Klipy::parse,
-];
+#[distributed_slice]
+pub static PARSERS: [Parser];
 
 pub trait Action: Send + Sync + ActionClone {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a>;
-    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, state: &Arc<AppState>) -> bool
-    where
-        Self: Sized;
     fn as_any(&self) -> &dyn Any;
 }
 
@@ -70,7 +39,6 @@ pub trait ActionList {
 }
 
 impl ActionList for Vec<Box<dyn Action>> {
-    #[hotpath::measure]
     async fn apply_actions(&mut self, images: &mut Vec<Frame>) -> Result<()> {
         for (i, action) in self.iter().enumerate() {
             action.apply(images, i as u32).await?;
@@ -79,7 +47,6 @@ impl ActionList for Vec<Box<dyn Action>> {
     }
 }
 
-#[hotpath::measure]
 pub fn parse_actions(inputs: &[&str], state: &Arc<AppState>) -> Vec<Box<dyn Action>> {
     let mut actions: Vec<Box<dyn Action>> = Vec::with_capacity(inputs.len());
     for input in inputs {

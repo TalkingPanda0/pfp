@@ -2,10 +2,11 @@ use std::{any::Any, sync::Arc};
 
 use anyhow::{Result, anyhow, bail};
 use imageproc::compose::overlay_mut;
+use linkme::distributed_slice;
 
 use crate::{
     AppState,
-    action::{Action, ActionResult},
+    action::{Action, ActionResult, PARSERS},
     frames::{Frame, Frames},
 };
 
@@ -45,18 +46,16 @@ impl Combine {
         Self(resize)
     }
 }
-
-impl Action for Combine {
-    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-        if input.starts_with("combine") {
-            actions.push(Box::new(Combine(input.ends_with("r"))));
-            true
-        } else {
-            false
-        }
+#[distributed_slice(PARSERS)]
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
+    if input.starts_with("combine") {
+        actions.push(Box::new(Combine(input.ends_with("r"))));
+        true
+    } else {
+        false
     }
-
-    #[hotpath::measure]
+}
+impl Action for Combine {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {
         Box::pin(async move {
             let mut overlay = images.extract_action(-1);

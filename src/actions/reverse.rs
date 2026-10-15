@@ -1,29 +1,32 @@
 use std::{any::Any, sync::Arc};
 
+use linkme::distributed_slice;
+
 use crate::{
     AppState,
-    action::{Action, ActionResult},
+    action::{Action, ActionResult, PARSERS},
     frames::{Frame, Frames},
 };
 
 #[derive(Clone, Copy)]
 pub struct Reverse(bool);
 
-impl Action for Reverse {
-    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-        match input {
-            "reverse" => {
-                actions.push(Box::new(Reverse(false)));
-                true
-            }
-            "reverseesrever" | "yoyo" => {
-                actions.push(Box::new(Reverse(true)));
-                true
-            }
-            _ => false,
+#[distributed_slice(PARSERS)]
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
+    match input {
+        "reverse" => {
+            actions.push(Box::new(Reverse(false)));
+            true
         }
+        "reverseesrever" | "yoyo" => {
+            actions.push(Box::new(Reverse(true)));
+            true
+        }
+        _ => false,
     }
+}
 
+impl Action for Reverse {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {
         Box::pin(async move {
             let frames: Vec<Frame> = if self.0 {

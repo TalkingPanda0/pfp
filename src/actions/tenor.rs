@@ -1,11 +1,12 @@
 use std::{any::Any, sync::Arc};
 
 use anyhow::{anyhow, bail};
+use linkme::distributed_slice;
 use reqwest::StatusCode;
 
 use crate::{
     AppState,
-    action::{Action, ActionResult},
+    action::{Action, ActionResult, PARSERS},
     frames::{Frame, Frames},
 };
 
@@ -19,22 +20,21 @@ impl Tenor {
         Self(url)
     }
 }
-#[hotpath::measure_all]
-impl Action for Tenor {
-    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-        if let Some(id) = input
-            .strip_prefix("tenor(")
-            .and_then(|s| s.strip_suffix(")"))
-            .map(|s| s.trim_prefix("https://").trim_prefix("tenor.com/view"))
-        {
-            actions.push(Box::new(Self(id.to_string())));
-            true
-        } else {
-            false
-        }
+#[distributed_slice(PARSERS)]
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
+    if let Some(id) = input
+        .strip_prefix("tenor(")
+        .and_then(|s| s.strip_suffix(")"))
+        .map(|s| s.trim_prefix("https://").trim_prefix("tenor.com/view"))
+    {
+        actions.push(Box::new(Tenor(id.to_string())));
+        true
+    } else {
+        false
     }
+}
 
-    #[hotpath::measure]
+impl Action for Tenor {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {
         Box::pin(async move {
             let mut content = reqwest::get(format!("https://tenor.com/view/{}", self.0))

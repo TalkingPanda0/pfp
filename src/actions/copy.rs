@@ -1,40 +1,40 @@
 use std::sync::Arc;
 
+use linkme::distributed_slice;
+
 use crate::{
     AppState,
-    action::Action,
+    action::{Action, PARSERS},
     frames::{Frame, Frames},
 };
 
 #[derive(Clone)]
 pub struct Copy(i32);
 
-impl Action for Copy {
-    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _: &Arc<AppState>) -> bool
-    where
-        Self: Sized,
-    {
-        if let Some(rest) = input.strip_prefix("copy") {
-            if rest.is_empty() {
-                actions.push(Box::new(Copy(-1)));
+#[distributed_slice(PARSERS)]
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _: &Arc<AppState>) -> bool {
+    if let Some(rest) = input.strip_prefix("copy") {
+        if rest.is_empty() {
+            actions.push(Box::new(Copy(-1)));
+            true
+        } else {
+            if let Some(action) = rest
+                .strip_prefix("(")
+                .and_then(|s| s.strip_suffix(")"))
+                .and_then(|s| Some(Box::new(Copy(s.parse().ok()?)) as Box<dyn Action>))
+            {
+                actions.push(action);
                 true
             } else {
-                if let Some(action) = rest
-                    .strip_prefix("(")
-                    .and_then(|s| s.strip_suffix(")"))
-                    .and_then(|s| Some(Box::new(Copy(s.parse().ok()?)) as Box<dyn Action>))
-                {
-                    actions.push(action);
-                    true
-                } else {
-                    false
-                }
+                false
             }
-        } else {
-            false
         }
+    } else {
+        false
     }
+}
 
+impl Action for Copy {
     fn apply<'a>(
         &'a self,
         images: &'a mut Vec<Frame>,

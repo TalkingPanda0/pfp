@@ -2,31 +2,33 @@ use std::{any::Any, f32::consts::PI, sync::Arc};
 
 use image::Rgba;
 use imageproc::geometric_transformations::{Interpolation, rotate_about_center};
+use linkme::distributed_slice;
 
 use crate::{
     AppState,
-    action::{Action, ActionResult},
+    action::{Action, ActionResult, PARSERS},
     frames::{Frame, Frames},
 };
 
 #[derive(Clone, Copy)]
 pub struct Rotate(i32);
 
+#[distributed_slice(PARSERS)]
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
+    let Some(rotation) = input
+        .strip_prefix("rotate(")
+        .and_then(|s| s.strip_suffix(")"))
+        .and_then(|s| s.parse().ok())
+    else {
+        return false;
+    };
+
+    actions.push(Box::new(Rotate(rotation)));
+
+    true
+}
+
 impl Action for Rotate {
-    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-        let Some(rotation) = input
-            .strip_prefix("rotate(")
-            .and_then(|s| s.strip_suffix(")"))
-            .and_then(|s| s.parse().ok())
-        else {
-            return false;
-        };
-
-        actions.push(Box::new(Self(rotation)));
-
-        true
-    }
-
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {
         Box::pin(async move {
             let frames = images.get_mut_action(-1);

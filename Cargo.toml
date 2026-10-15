@@ -9,8 +9,6 @@ axum = { version = "0.8.8", default-features = false , features = ["http1","toki
 reqwest = { version = "0.13.2", default-features = false, features = ["default-tls","gzip"]}
 discord = { git = "https://github.com/SpaceManiac/discord-rs", default-features = false }
 image = { version = "0.25.9", default-features = false, features = ["gif","jpeg","png","tiff","ico","bmp"] }
-inventory = "0.3.22"
-async-trait = "0.1.89"
 imageproc = {version = "0.26.1", default-features = false, features = ["text"]}
 ab_glyph = "0.2.32"
 webpx = { path = "../webpx", features = ["animation"] }
@@ -19,12 +17,8 @@ itertools = "0.14.0"
 anyhow = "1.0.102"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
-hotpath = "0.19"
-
-[features]
-hotpath = ["hotpath/hotpath"]
-hotpath-cpu = ["hotpath/hotpath-cpu"]
-hotpath-alloc = ["hotpath/hotpath-alloc"]
+tikv-jemallocator = "0.7.0"
+linkme = "0.3.37"
 
 [profile.release]
 lto = "fat"

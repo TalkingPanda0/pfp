@@ -1,13 +1,25 @@
 use std::sync::Arc;
 
+use linkme::distributed_slice;
+
 use crate::{
     AppState,
-    action::{Action, ActionResult},
+    action::{Action, ActionResult, PARSERS},
     frames::Frames,
 };
 
 #[derive(Clone)]
 pub struct Row;
+
+#[distributed_slice(PARSERS)]
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
+    if input.eq_ignore_ascii_case("row") {
+        actions.push(Box::new(Row));
+        true
+    } else {
+        false
+    }
+}
 
 impl Action for Row {
     fn apply<'a>(
@@ -21,14 +33,6 @@ impl Action for Row {
         })
     }
 
-    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-        if input.eq_ignore_ascii_case("row") {
-            actions.push(Box::new(Row));
-            true
-        } else {
-            false
-        }
-    }
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }

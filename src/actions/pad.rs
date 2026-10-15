@@ -1,37 +1,39 @@
 use std::{any::Any, sync::Arc};
 
 use image::{DynamicImage, GenericImage, GenericImageView};
+use linkme::distributed_slice;
 
 use crate::{
     AppState,
-    action::{Action, ActionResult},
+    action::{Action, ActionResult, PARSERS},
     frames::{Frame, Frames},
 };
 
 #[derive(Clone, Copy)]
 pub struct Pad(i32, i32, bool);
 
+#[distributed_slice(PARSERS)]
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
+    let Some(mut args) = input
+        .strip_prefix("pad(")
+        .and_then(|s| s.strip_suffix(")"))
+        .map(|s| s.split(","))
+    else {
+        return false;
+    };
+
+    let (x, y, keep) = (
+        args.next().and_then(|s| s.parse().ok()).unwrap_or(0),
+        args.next().and_then(|s| s.parse().ok()).unwrap_or(0),
+        args.next().and_then(|s| s.parse().ok()).unwrap_or(false),
+    );
+
+    actions.push(Box::new(Pad(x, y, keep)));
+
+    true
+}
+
 impl Action for Pad {
-    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-        let Some(mut args) = input
-            .strip_prefix("pad(")
-            .and_then(|s| s.strip_suffix(")"))
-            .map(|s| s.split(","))
-        else {
-            return false;
-        };
-
-        let (x, y, keep) = (
-            args.next().and_then(|s| s.parse().ok()).unwrap_or(0),
-            args.next().and_then(|s| s.parse().ok()).unwrap_or(0),
-            args.next().and_then(|s| s.parse().ok()).unwrap_or(false),
-        );
-
-        actions.push(Box::new(Self(x, y, keep)));
-
-        true
-    }
-
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {
         Box::pin(async move {
             let frames = images.get_mut_action(-1);

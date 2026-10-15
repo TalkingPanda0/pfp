@@ -1,11 +1,12 @@
 use std::{any::Any, env, sync::Arc};
 
 use anyhow::anyhow;
+use linkme::distributed_slice;
 use serde::Deserialize;
 
 use crate::{
     AppState,
-    action::{Action, ActionResult},
+    action::{Action, ActionResult, PARSERS},
     frames::{Frame, Frames},
 };
 
@@ -14,8 +15,22 @@ pub struct Klipy {
     slug: String,
 }
 
+#[distributed_slice(PARSERS)]
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
+    let Some(slug) = input
+        .strip_prefix("klipy(")
+        .and_then(|s| s.strip_suffix(")"))
+        .map(|s| s.to_string())
+    else {
+        return false;
+    };
+
+    actions.push(Box::new(Klipy { slug }));
+
+    true
+}
+
 impl Action for Klipy {
-    #[hotpath::measure]
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {
         Box::pin(async move {
             let api_key = env::var("KLIPY_TOKEN")?;
@@ -41,20 +56,6 @@ impl Action for Klipy {
 
             Ok(())
         })
-    }
-
-    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-        let Some(slug) = input
-            .strip_prefix("klipy(")
-            .and_then(|s| s.strip_suffix(")"))
-            .map(|s| s.to_string())
-        else {
-            return false;
-        };
-
-        actions.push(Box::new(Klipy { slug }));
-
-        true
     }
 
     fn as_any(&self) -> &dyn Any {

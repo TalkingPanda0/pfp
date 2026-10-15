@@ -2,38 +2,40 @@ use std::{any::Any, sync::Arc};
 
 use anyhow::bail;
 use image::{GenericImageView, imageops::FilterType};
+use linkme::distributed_slice;
 
 use crate::{
     AppState,
-    action::{Action, ActionResult},
+    action::{Action, ActionResult, PARSERS},
     frames::{Frame, Frames},
 };
 
 #[derive(Clone, Copy)]
 pub struct Scale(u32, u32);
 
-impl Action for Scale {
-    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-        let Some((x, y)) = input
-            .strip_prefix("scale(")
-            .and_then(|s| s.strip_suffix(")"))
-            .and_then(|s| s.split_once(","))
-            .and_then(|s| {
-                if let Ok(x) = s.0.parse()
-                    && let Ok(y) = s.1.parse()
-                {
-                    Some((x, y))
-                } else {
-                    None
-                }
-            })
-        else {
-            return false;
-        };
-        actions.push(Box::new(Self(x, y)));
-        true
-    }
+#[distributed_slice(PARSERS)]
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
+    let Some((x, y)) = input
+        .strip_prefix("scale(")
+        .and_then(|s| s.strip_suffix(")"))
+        .and_then(|s| s.split_once(","))
+        .and_then(|s| {
+            if let Ok(x) = s.0.parse()
+                && let Ok(y) = s.1.parse()
+            {
+                Some((x, y))
+            } else {
+                None
+            }
+        })
+    else {
+        return false;
+    };
+    actions.push(Box::new(Scale(x, y)));
+    true
+}
 
+impl Action for Scale {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, _action: u32) -> ActionResult<'a> {
         Box::pin(async move {
             let frames = images.get_mut_action(-1);

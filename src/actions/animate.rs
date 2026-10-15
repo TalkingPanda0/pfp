@@ -1,10 +1,11 @@
 use std::{any::Any, sync::Arc};
 
 use anyhow::{anyhow, bail};
+use linkme::distributed_slice;
 
 use crate::{
     AppState,
-    action::{Action, ActionResult},
+    action::{Action, ActionResult, PARSERS},
     actions::{opacity::Opacity, pad::Pad, rotate::Rotate, scale::Scale},
     frames::{Frame, Frames},
 };
@@ -66,42 +67,42 @@ impl AnimateMode {
 #[derive(Clone, Copy)]
 pub struct Animate(Property, i32, i32, i8, AnimateMode);
 
+#[distributed_slice(PARSERS)]
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _discord: &Arc<AppState>) -> bool {
+    let Some(mut arguments) = input
+        .strip_prefix("animate(")
+        .and_then(|s| s.strip_suffix(")"))
+        .map(|s| s.split(","))
+    else {
+        return false;
+    };
+    let (property, start, end, speed, mode) = (
+        arguments
+            .next()
+            .and_then(Property::parse)
+            .unwrap_or(Property::Opacity),
+        arguments
+            .next()
+            .and_then(|arg| arg.parse().ok())
+            .unwrap_or(0),
+        arguments
+            .next()
+            .and_then(|arg| arg.parse().ok())
+            .unwrap_or(100),
+        arguments
+            .next()
+            .and_then(|arg| arg.parse().ok())
+            .unwrap_or(5),
+        arguments
+            .next()
+            .and_then(AnimateMode::parse)
+            .unwrap_or(AnimateMode::End),
+    );
+
+    actions.push(Box::new(Animate(property, start, end, speed, mode)));
+    true
+}
 impl Action for Animate {
-    fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _discord: &Arc<AppState>) -> bool {
-        let Some(mut arguments) = input
-            .strip_prefix("animate(")
-            .and_then(|s| s.strip_suffix(")"))
-            .map(|s| s.split(","))
-        else {
-            return false;
-        };
-        let (property, start, end, speed, mode) = (
-            arguments
-                .next()
-                .and_then(Property::parse)
-                .unwrap_or(Property::Opacity),
-            arguments
-                .next()
-                .and_then(|arg| arg.parse().ok())
-                .unwrap_or(0),
-            arguments
-                .next()
-                .and_then(|arg| arg.parse().ok())
-                .unwrap_or(100),
-            arguments
-                .next()
-                .and_then(|arg| arg.parse().ok())
-                .unwrap_or(5),
-            arguments
-                .next()
-                .and_then(AnimateMode::parse)
-                .unwrap_or(AnimateMode::End),
-        );
-
-        actions.push(Box::new(Animate(property, start, end, speed, mode)));
-        true
-    }
-
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {
         Box::pin(async move {
             let mut last = images.extract_action(-1);
