@@ -7,7 +7,6 @@ mod actions;
 mod cache;
 mod discord;
 mod frames;
-mod twitch;
 
 use std::sync::Arc;
 
