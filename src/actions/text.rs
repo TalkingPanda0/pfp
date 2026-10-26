@@ -1,4 +1,4 @@
-use std::{any::Any, sync::Arc};
+use std::sync::Arc;
 
 use ab_glyph::{FontRef, PxScale};
 use anyhow::Result;

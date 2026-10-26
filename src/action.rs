@@ -2,7 +2,7 @@ use anyhow::Result;
 use linkme::distributed_slice;
 
 use crate::{AppState, frames::Frame};
-use std::{any::Any, pin::Pin, sync::Arc};
+use std::{pin::Pin, sync::Arc};
 
 pub type ActionResult<'a> = Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>;
 pub type Parser = fn(&str, &mut Vec<Box<dyn Action>>, &Arc<AppState>) -> bool;

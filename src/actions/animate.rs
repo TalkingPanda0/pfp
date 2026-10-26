@@ -1,4 +1,4 @@
-use std::{any::Any, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::{anyhow, bail};
 use linkme::distributed_slice;

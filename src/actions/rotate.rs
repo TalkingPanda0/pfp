@@ -1,4 +1,4 @@
-use std::{any::Any, f32::consts::PI, sync::Arc};
+use std::{f32::consts::PI, sync::Arc};
 
 use image::Rgba;
 use imageproc::geometric_transformations::{Interpolation, rotate_about_center};

@@ -1,4 +1,4 @@
-use std::{any::Any, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::bail;
 use image::{GenericImageView, imageops::FilterType};

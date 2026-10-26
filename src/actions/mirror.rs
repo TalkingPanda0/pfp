@@ -1,4 +1,4 @@
-use std::{any::Any, sync::Arc};
+use std::sync::Arc;
 
 use image::metadata::Orientation;
 use linkme::distributed_slice;

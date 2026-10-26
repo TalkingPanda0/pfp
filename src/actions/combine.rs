@@ -1,4 +1,4 @@
-use std::{any::Any, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::{Result, anyhow, bail};
 use imageproc::compose::overlay_mut;
