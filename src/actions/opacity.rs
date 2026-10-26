@@ -47,10 +47,6 @@ impl Action for Opacity {
             Ok(())
         })
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }
 
 impl Opacity {

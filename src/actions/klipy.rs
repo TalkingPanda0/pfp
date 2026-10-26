@@ -57,10 +57,6 @@ impl Action for Klipy {
             Ok(())
         })
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }
 
 #[derive(Deserialize)]

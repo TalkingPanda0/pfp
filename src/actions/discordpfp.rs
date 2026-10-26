@@ -19,18 +19,7 @@ fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, state: &Arc<AppState>)
         return false;
     };
 
-    let Some(avatar) = actions
-        .iter()
-        .find_map(|action| {
-            let action = action.as_any().downcast_ref::<DiscordPFPAction>()?;
-            if action.0 == id {
-                Some(action.1.clone())
-            } else {
-                None
-            }
-        })
-        .or_else(|| state.discord.get_avatar(id).ok())
-    else {
+    let Some(avatar) = state.discord.get_avatar(id).ok() else {
         return false;
     };
 
@@ -55,8 +44,5 @@ impl Action for DiscordPFPAction {
             images.push(Frame::from_webp(&pfp_bytes, 1000, action)?);
             Ok(())
         })
-    }
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
     }
 }

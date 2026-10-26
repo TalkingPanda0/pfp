@@ -41,7 +41,4 @@ impl Action for Reverse {
         })
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }

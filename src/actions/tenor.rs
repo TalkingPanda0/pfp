@@ -69,8 +69,4 @@ impl Action for Tenor {
             Ok(())
         })
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }

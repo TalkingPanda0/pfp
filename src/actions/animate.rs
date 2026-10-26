@@ -165,10 +165,6 @@ impl Action for Animate {
             Ok(())
         })
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }
 
 impl Animate {

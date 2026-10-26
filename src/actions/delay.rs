@@ -36,7 +36,4 @@ impl Action for Delay {
             Ok(())
         })
     }
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
 }

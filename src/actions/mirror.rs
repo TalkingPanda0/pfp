@@ -36,7 +36,4 @@ impl Action for Mirror {
             Ok(())
         })
     }
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }

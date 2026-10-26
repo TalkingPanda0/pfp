@@ -44,8 +44,5 @@ impl Action for URLAction {
             Ok(())
         })
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }
+

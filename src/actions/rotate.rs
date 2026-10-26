@@ -45,10 +45,6 @@ impl Action for Rotate {
             Ok(())
         })
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }
 
 impl Rotate {

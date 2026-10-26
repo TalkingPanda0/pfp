@@ -77,11 +77,8 @@ impl Action for Pad {
             Ok(())
         })
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }
+
 
 impl Pad {
     pub fn new(x: i32, y: i32, keep_size: bool) -> Self {

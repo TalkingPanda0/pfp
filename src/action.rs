@@ -12,7 +12,6 @@ pub static PARSERS: [Parser];
 
 pub trait Action: Send + Sync + ActionClone {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a>;
-    fn as_any(&self) -> &dyn Any;
 }
 
 pub trait ActionClone {

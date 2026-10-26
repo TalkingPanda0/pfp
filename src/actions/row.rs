@@ -32,8 +32,4 @@ impl Action for Row {
             Ok(())
         })
     }
-
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
 }

@@ -91,8 +91,4 @@ impl Action for Combine {
             Ok(())
         })
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }

@@ -159,8 +159,4 @@ impl Action for TextAction {
             Ok(())
         })
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }

@@ -57,11 +57,8 @@ impl Action for Scale {
             Ok(())
         })
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }
+
 impl Scale {
     pub fn new(width: u32, height: u32) -> Self {
         Self(width, height)
