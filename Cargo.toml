@@ -19,6 +19,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 tikv-jemallocator = "0.7.0"
 linkme = "0.3.37"
+parse_derive = { path = "./parse_derive" }
 
 [profile.release]
 lto = "fat"
