@@ -1,26 +1,16 @@
-use std::sync::Arc;
-
 use linkme::distributed_slice;
+use parse_derive::{Parsable, ParsableAction};
 use reqwest::Client;
 
 use crate::{
-    AppState,
-    action::{Action, ActionResult, PARSERS},
-    frames::{Frame, Frames},
+    action::{Action, ActionResult, PARSERS, Parser}, frames::{Frame, Frames}, parser::ParsableAction,
 };
 
-#[derive(Clone)]
+#[derive(Clone,Parsable,ParsableAction)]
 pub struct URLAction(String);
 
 #[distributed_slice(PARSERS)]
-fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-    if let Some(url) = input.strip_prefix("url(").and_then(|s| s.strip_suffix(")")) {
-        actions.push(Box::new(URLAction(url.to_string())));
-        true
-    } else {
-        false
-    }
-}
+static PARSER: Parser = URLAction::parse_action;
 
 impl Action for URLAction {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {

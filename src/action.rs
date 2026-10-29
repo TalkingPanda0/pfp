@@ -1,11 +1,11 @@
 use anyhow::Result;
 use linkme::distributed_slice;
 
-use crate::{AppState, frames::Frame};
-use std::{pin::Pin, sync::Arc};
+use crate::{frames::Frame};
+use std::{pin::Pin};
 
 pub type ActionResult<'a> = Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>;
-pub type Parser = fn(&str, &mut Vec<Box<dyn Action>>, &Arc<AppState>) -> bool;
+pub type Parser = fn(&str, &mut Vec<Box<dyn Action>>) -> bool;
 
 #[distributed_slice]
 pub static PARSERS: [Parser];
@@ -46,11 +46,11 @@ impl ActionList for Vec<Box<dyn Action>> {
     }
 }
 
-pub fn parse_actions(inputs: &[&str], state: &Arc<AppState>) -> Vec<Box<dyn Action>> {
+pub fn parse_actions(inputs: &[&str]) -> Vec<Box<dyn Action>> {
     let mut actions: Vec<Box<dyn Action>> = Vec::with_capacity(inputs.len());
     for input in inputs {
         for parser in PARSERS {
-            if parser(input, &mut actions, state) {
+            if parser(input, &mut actions) {
                 break;
             }
         }

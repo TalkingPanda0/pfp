@@ -1,9 +1,6 @@
-use std::sync::Arc;
-
 use linkme::distributed_slice;
 
 use crate::{
-    AppState,
     action::{Action, PARSERS},
     actions::{
         animate::{Animate, AnimateMode, Property},
@@ -14,7 +11,7 @@ use crate::{
 };
 
 #[distributed_slice(PARSERS)]
-fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>) -> bool {
     match input {
         "explode" => {
             actions.push(Box::new(Tenor::new(
@@ -27,20 +24,20 @@ fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>
         "fadeout" => {
             actions.push(Box::new(Animate::new(
                 Property::Opacity,
-                100,
-                0,
-                10,
-                AnimateMode::End,
+                Some(100),
+                Some(0),
+                Some(10),
+                Some(AnimateMode::End),
             )));
             true
         }
         "fadein" => {
             actions.push(Box::new(Animate::new(
                 Property::Opacity,
-                0,
-                100,
-                10,
-                AnimateMode::End,
+                Some(0),
+                Some(100),
+                Some(10),
+                Some(AnimateMode::End),
             )));
             true
         }

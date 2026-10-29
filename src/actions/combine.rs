@@ -1,11 +1,8 @@
-use std::sync::Arc;
-
 use anyhow::{Result, anyhow, bail};
 use imageproc::compose::overlay_mut;
 use linkme::distributed_slice;
 
 use crate::{
-    AppState,
     action::{Action, ActionResult, PARSERS},
     frames::{Frame, Frames},
 };
@@ -47,7 +44,7 @@ impl Combine {
     }
 }
 #[distributed_slice(PARSERS)]
-fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>) -> bool {
     if input.starts_with("combine") {
         actions.push(Box::new(Combine(input.ends_with("r"))));
         true

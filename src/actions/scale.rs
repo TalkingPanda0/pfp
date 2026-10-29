@@ -1,39 +1,17 @@
-use std::sync::Arc;
-
 use anyhow::bail;
 use image::{GenericImageView, imageops::FilterType};
 use linkme::distributed_slice;
+use parse_derive::{Parsable, ParsableAction};
 
 use crate::{
-    AppState,
-    action::{Action, ActionResult, PARSERS},
-    frames::{Frame, Frames},
+    action::{Action, ActionResult, PARSERS, Parser}, frames::{Frame, Frames}, parser::ParsableAction,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy,Parsable,ParsableAction)]
 pub struct Scale(u32, u32);
 
 #[distributed_slice(PARSERS)]
-fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-    let Some((x, y)) = input
-        .strip_prefix("scale(")
-        .and_then(|s| s.strip_suffix(")"))
-        .and_then(|s| s.split_once(","))
-        .and_then(|s| {
-            if let Ok(x) = s.0.parse()
-                && let Ok(y) = s.1.parse()
-            {
-                Some((x, y))
-            } else {
-                None
-            }
-        })
-    else {
-        return false;
-    };
-    actions.push(Box::new(Scale(x, y)));
-    true
-}
+static PARSER: Parser = Scale::parse_action;
 
 impl Action for Scale {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, _action: u32) -> ActionResult<'a> {

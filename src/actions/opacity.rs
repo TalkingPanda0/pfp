@@ -1,31 +1,17 @@
-use std::sync::Arc;
-
 use anyhow::anyhow;
 use linkme::distributed_slice;
+use parse_derive::{Parsable, ParsableAction};
 
 use crate::{
-    AppState,
-    action::{Action, ActionResult, PARSERS},
-    frames::{Frame, Frames},
+    action::{Action, ActionResult, PARSERS, Parser}, frames::{Frame, Frames}, parser::ParsableAction,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy,Parsable,ParsableAction)]
 pub struct Opacity(u8);
 
+
 #[distributed_slice(PARSERS)]
-fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-    let Some(opacity) = input
-        .strip_prefix("opacity(")
-        .and_then(|s| s.strip_suffix(")"))
-        .and_then(|s| s.parse().ok())
-    else {
-        return false;
-    };
-
-    actions.push(Box::new(Opacity(opacity)));
-
-    true
-}
+static PARSER: Parser = Opacity::parse_action;
 
 impl Action for Opacity {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {

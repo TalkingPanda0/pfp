@@ -1,30 +1,16 @@
-use std::sync::Arc;
-
 use anyhow::anyhow;
 use linkme::distributed_slice;
+use parse_derive::{Parsable, ParsableAction};
 
 use crate::{
-    AppState,
-    action::{Action, ActionResult, PARSERS},
-    frames::Frame,
+    action::{Action, ActionResult, PARSERS, Parser}, frames::Frame, parser::ParsableAction,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy,Parsable,ParsableAction)]
 pub struct Delay(i32);
 
 #[distributed_slice(PARSERS)]
-fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-    if let Some(delay) = input
-        .strip_prefix("delay(")
-        .and_then(|s| s.strip_suffix(")"))
-        .and_then(|s| s.parse().ok())
-    {
-        actions.push(Box::new(Delay(delay)));
-        true
-    } else {
-        false
-    }
-}
+static PARSER: Parser = Delay::parse_action;
 
 impl Action for Delay {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, _action: u32) -> ActionResult<'a> {

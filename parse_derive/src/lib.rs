@@ -1,7 +1,5 @@
-use std::fs::read;
-
-use proc_macro2::{Literal, TokenStream};
-use quote::{ToTokens, quote};
+use proc_macro2::{TokenStream};
+use quote::{quote};
 use syn::{
     Data, DataStruct, DeriveInput, Expr, ExprLit, ExprTuple, Fields, Type, punctuated::Punctuated,
     token::Comma,
@@ -22,7 +20,7 @@ pub fn parsable_action_derive(input: proc_macro::TokenStream) -> proc_macro::Tok
 
 fn create_parser(ty: Type) -> TokenStream {
     quote! {
-        <#ty as parser::Parsable>::parse(input)?
+        <#ty as crate::parser::Parsable>::parse(input)?
     }
 }
 
@@ -99,7 +97,7 @@ fn impl_parsable_derive(input: DeriveInput) -> TokenStream {
 
     quote! {
         #[automatically_derived]
-        impl Parsable for #name {
+        impl crate::parser::Parsable for #name {
             fn parse<'a>(input: &mut impl Iterator<Item = &'a str>) -> Option<Self> {
                 #fields
             }
@@ -132,7 +130,7 @@ fn impl_parsable_action_derive(input: DeriveInput) -> TokenStream {
     ) {
         return quote! {
             #[automatically_derived]
-            impl ParsableAction for #ident {
+            impl crate::parser::ParsableAction for #ident {
               fn parse_action(input: &str, actions: &mut Vec<Box<dyn Action>>) -> bool {
                   if input == #name {
                     actions.push(Box::new(Self));
@@ -183,10 +181,10 @@ fn impl_parsable_action_derive(input: DeriveInput) -> TokenStream {
 
     quote! {
         #[automatically_derived]
-        impl ParsableAction for #ident {
+        impl crate::parser::ParsableAction for #ident {
           fn parse_action(input: &str, actions: &mut Vec<Box<dyn Action>>) -> bool {
               if let Some(mut input) = input.strip_prefix(#prefix).and_then(|s| s.strip_suffix(#end)).map(|s| s.split(","))
-              && let Some(action) = <#ident as parser::Parsable>::parse(&mut input) {
+              && let Some(action) = <#ident as crate::parser::Parsable>::parse(&mut input) {
                   actions.push(Box::new(action));
                 true
               } else {

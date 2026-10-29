@@ -1,9 +1,6 @@
-use std::sync::Arc;
-
 use linkme::distributed_slice;
 
 use crate::{
-    AppState,
     action::{Action, PARSERS},
     frames::{Frame, Frames},
 };
@@ -12,7 +9,7 @@ use crate::{
 pub struct Copy(i32);
 
 #[distributed_slice(PARSERS)]
-fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _: &Arc<AppState>) -> bool {
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>) -> bool {
     if let Some(rest) = input.strip_prefix("copy") {
         if rest.is_empty() {
             actions.push(Box::new(Copy(-1)));

@@ -1,32 +1,19 @@
-use std::{f32::consts::PI, sync::Arc};
+use std::{f32::consts::PI};
 
 use image::Rgba;
 use imageproc::geometric_transformations::{Interpolation, rotate_about_center};
 use linkme::distributed_slice;
+use parse_derive::{Parsable, ParsableAction};
 
 use crate::{
-    AppState,
-    action::{Action, ActionResult, PARSERS},
-    frames::{Frame, Frames},
+    action::{Action, ActionResult, PARSERS, Parser}, frames::{Frame, Frames}, parser::ParsableAction,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy,Parsable,ParsableAction)]
 pub struct Rotate(i32);
 
 #[distributed_slice(PARSERS)]
-fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-    let Some(rotation) = input
-        .strip_prefix("rotate(")
-        .and_then(|s| s.strip_suffix(")"))
-        .and_then(|s| s.parse().ok())
-    else {
-        return false;
-    };
-
-    actions.push(Box::new(Rotate(rotation)));
-
-    true
-}
+static PARSER: Parser = Rotate::parse_action;
 
 impl Action for Rotate {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {

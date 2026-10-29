@@ -1,18 +1,15 @@
-use std::sync::Arc;
-
 use anyhow::{anyhow, bail};
 use linkme::distributed_slice;
+use parse_derive::{Parsable, ParsableAction};
 use reqwest::StatusCode;
 
 use crate::{
-    AppState,
-    action::{Action, ActionResult, PARSERS},
-    frames::{Frame, Frames},
+    action::{Action, ActionResult, PARSERS, Parser}, frames::{Frame, Frames}, parser::ParsableAction,
 };
 
 const PATTERN: &str = "<meta class=\"dynamic\" name=\"twitter:image\" content=\"";
 
-#[derive(Clone)]
+#[derive(Clone,Parsable,ParsableAction)]
 pub struct Tenor(String);
 
 impl Tenor {
@@ -20,19 +17,9 @@ impl Tenor {
         Self(url)
     }
 }
+
 #[distributed_slice(PARSERS)]
-fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-    if let Some(id) = input
-        .strip_prefix("tenor(")
-        .and_then(|s| s.strip_suffix(")"))
-        .map(|s| s.trim_prefix("https://").trim_prefix("tenor.com/view"))
-    {
-        actions.push(Box::new(Tenor(id.to_string())));
-        true
-    } else {
-        false
-    }
-}
+static PARSER: Parser = Tenor::parse_action;
 
 impl Action for Tenor {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {

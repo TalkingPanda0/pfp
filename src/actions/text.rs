@@ -1,34 +1,20 @@
-use std::sync::Arc;
-
 use ab_glyph::{FontRef, PxScale};
 use anyhow::Result;
 use hex_color::HexColor;
 use image::{DynamicImage, GenericImageView, Rgba};
 use imageproc::drawing::{draw_text_mut, text_size};
 use linkme::distributed_slice;
+use parse_derive::{Parsable, ParsableAction};
 
 use crate::{
-    AppState,
-    action::{Action, ActionResult, PARSERS},
-    frames::{Frame, Frames},
+    action::{Action, ActionResult, PARSERS, Parser}, frames::{Frame, Frames}, parser::{Parsable, ParsableAction},
 };
 
-#[derive(Clone)]
+#[derive(Clone, Parsable)]
 enum Alignment {
     Top,
     Middle,
     Bottom,
-}
-
-impl Alignment {
-    fn parse(input: &str) -> Option<Self> {
-        match input {
-            "top" => Some(Alignment::Top),
-            "middle" => Some(Alignment::Middle),
-            "bottom" => Some(Alignment::Bottom),
-            _ => None,
-        }
-    }
 }
 
 fn find_best_size(
@@ -62,25 +48,28 @@ fn find_best_size(
     (result_width, result_height, scale)
 }
 
-fn parse_color(input: &str) -> Option<Rgba<u8>> {
-    match input {
-        "white" => Some(Rgba([255, 255, 255, 255])),
-        "black" => Some(Rgba([0, 0, 0, 255])),
-        "red" => Some(Rgba([255, 0, 0, 255])),
-        "green" => Some(Rgba([0, 255, 0, 255])),
-        "blue" => Some(Rgba([0, 0, 255, 255])),
-        _ => HexColor::parse(&format!("#{input}"))
-            .map(|c| Rgba([c.r, c.g, c.b, c.a]))
-            .ok(),
+impl Parsable for Rgba<u8> {
+    fn parse<'a>(input: &mut impl Iterator<Item = &'a str>) -> Option<Self> {
+        match input.next()? {
+            "white" => Some(Rgba([255, 255, 255, 255])),
+            "black" => Some(Rgba([0, 0, 0, 255])),
+            "red" => Some(Rgba([255, 0, 0, 255])),
+            "green" => Some(Rgba([0, 255, 0, 255])),
+            "blue" => Some(Rgba([0, 0, 255, 255])),
+            text => HexColor::parse(&format!("#{text}"))
+                .map(|c| Rgba([c.r, c.g, c.b, c.a]))
+                .ok(),
+        }
     }
 }
 
 // text(Text,Alignment,Color,Size,X,Y)
-#[derive(Clone)]
+#[derive(Clone,Parsable,ParsableAction)]
+#[name("text")]
 pub struct TextAction(
     String,
-    Alignment,
-    Rgba<u8>,
+    Option<Alignment>,
+    Option<Rgba<u8>>,
     Option<f32>,
     Option<i32>,
     Option<i32>,
@@ -103,52 +92,20 @@ impl TextAction {
         let x = self.4.unwrap_or(((width - text_width) / 2) as i32);
         let y = self.5.unwrap_or_else(|| {
             match self.1 {
-                Alignment::Top => 0.0,
-                Alignment::Middle => (height as f32 * 0.5) - (text_height as f32 * 0.5),
-                Alignment::Bottom => height as f32 - text_height as f32,
+                Some(Alignment::Top) => 0.0,
+                Some(Alignment::Middle) => (height as f32 * 0.5) - (text_height as f32 * 0.5),
+                _ => height as f32 - text_height as f32,
             }
             .round() as i32
         });
 
-        draw_text_mut(image, self.2, x, y, text_scale, &font, &self.0);
+        draw_text_mut(image, self.2.unwrap_or(Rgba([255, 255, 255, 255])), x, y, text_scale, &font, &self.0);
         Ok(())
     }
 }
 
 #[distributed_slice(PARSERS)]
-fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _: &Arc<AppState>) -> bool {
-    let Some(mut arguments) = input
-        .strip_prefix("text(")
-        .and_then(|s| s.strip_suffix(")"))
-        .map(|s| s.split(","))
-    else {
-        return false;
-    };
-    let (text, alignment, color, scale, x, y) = (
-        arguments.next().unwrap_or(""),
-        arguments
-            .next()
-            .and_then(Alignment::parse)
-            .unwrap_or(Alignment::Bottom),
-        arguments
-            .next()
-            .and_then(parse_color)
-            .unwrap_or(Rgba([255, 255, 255, 255])),
-        arguments.next().and_then(|s| s.parse::<f32>().ok()),
-        arguments.next().and_then(|s| s.parse::<i32>().ok()),
-        arguments.next().and_then(|s| s.parse::<i32>().ok()),
-    );
-
-    actions.push(Box::new(TextAction(
-        text.to_string(),
-        alignment,
-        color,
-        scale,
-        x,
-        y,
-    )));
-    true
-}
+static PARSER: Parser = TextAction::parse_action;
 
 impl Action for TextAction {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, _action: u32) -> ActionResult<'a> {

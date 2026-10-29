@@ -1,9 +1,6 @@
-use std::sync::Arc;
-
 use linkme::distributed_slice;
 
 use crate::{
-    AppState,
     action::{Action, ActionResult, PARSERS},
     frames::{Frame, Frames},
 };
@@ -12,7 +9,7 @@ use crate::{
 pub struct Reverse(bool);
 
 #[distributed_slice(PARSERS)]
-fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>) -> bool {
     match input {
         "reverse" => {
             actions.push(Box::new(Reverse(false)));

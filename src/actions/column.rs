@@ -1,25 +1,15 @@
-use std::sync::Arc;
-
 use linkme::distributed_slice;
+use parse_derive::ParsableAction;
 
 use crate::{
-    AppState,
-    action::{Action, ActionResult, PARSERS},
-    frames::Frames,
+    action::{Action, ActionResult, PARSERS, Parser}, frames::Frames, parser::ParsableAction,
 };
 
-#[derive(Clone)]
+#[derive(Clone,ParsableAction)]
 pub struct Column;
 
 #[distributed_slice(PARSERS)]
-fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-    if input.eq_ignore_ascii_case("Column") {
-        actions.push(Box::new(Column));
-        true
-    } else {
-        false
-    }
-}
+static PARSER: Parser = Column::parse_action;
 
 impl Action for Column {
     fn apply<'a>(

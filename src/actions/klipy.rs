@@ -1,34 +1,21 @@
-use std::{env, sync::Arc};
+use std::{env};
 
 use anyhow::anyhow;
 use linkme::distributed_slice;
+use parse_derive::{Parsable, ParsableAction};
 use serde::Deserialize;
 
 use crate::{
-    AppState,
-    action::{Action, ActionResult, PARSERS},
-    frames::{Frame, Frames},
+    action::{Action, ActionResult, PARSERS, Parser}, frames::{Frame, Frames}, parser::ParsableAction,
 };
 
-#[derive(Clone)]
+#[derive(Clone,Parsable,ParsableAction)]
 pub struct Klipy {
     slug: String,
 }
 
 #[distributed_slice(PARSERS)]
-fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
-    let Some(slug) = input
-        .strip_prefix("klipy(")
-        .and_then(|s| s.strip_suffix(")"))
-        .map(|s| s.to_string())
-    else {
-        return false;
-    };
-
-    actions.push(Box::new(Klipy { slug }));
-
-    true
-}
+static PARSER: Parser = Klipy::parse_action;
 
 impl Action for Klipy {
     fn apply<'a>(&'a self, images: &'a mut Vec<Frame>, action: u32) -> ActionResult<'a> {

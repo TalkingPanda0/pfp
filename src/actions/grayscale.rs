@@ -1,9 +1,6 @@
-use std::sync::Arc;
-
 use linkme::distributed_slice;
 
 use crate::{
-    AppState,
     action::{Action, ActionResult, PARSERS},
     frames::Frame,
 };
@@ -12,7 +9,7 @@ use crate::{
 pub struct Grayscale(bool);
 
 #[distributed_slice(PARSERS)]
-fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>, _state: &Arc<AppState>) -> bool {
+fn parse(input: &str, actions: &mut Vec<Box<dyn Action>>) -> bool {
     match input.strip_prefix("grayscale") {
         Some("") => actions.push(Box::new(Grayscale(false))),
         Some("all") => actions.push(Box::new(Grayscale(true))),
